@@ -1,0 +1,29 @@
+# Scoop packages — run bootstrap.ps1 to install
+# Buckets needed: main, extras, nerd-fonts
+
+# ─ Buckets ─
+# scoop bucket add extras
+# scoop bucket add nerd-fonts
+
+# ─ Fonts (matches modules/wezterm/wezterm.lua) ─
+FiraCode-NF
+Noto-Color-Emoji
+
+# ─ Tiling WM + hotkey daemon ─
+komorebi
+whkd
+
+# ─ Media / misc Windows-native fallbacks for macOS apps ─
+mpv                # iina replacement
+notepadplusplus    # coteditor replacement
+7zip               # keka replacement
+autoruns           # sentinel replacement (Sysinternals)
+procexp            # activity monitor replacement
+
+# ─ Optional CLI overlap (prefer WSL Nix versions) ─
+# Only install these if you need them OUTSIDE wsl:
+# ripgrep
+# fd
+# bat
+# fzf
+# starship

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://aka.ms/winget-packages.schema.2.0.json",
+  "CreationDate": "2026-04-11T00:00:00.000-00:00",
+  "Sources": [
+    {
+      "SourceDetails": {
+        "Argument": "https://cdn.winget.microsoft.com/cache",
+        "Identifier": "Microsoft.Winget.Source_8wekyb3d8bbwe",
+        "Name": "winget",
+        "Type": "Microsoft.PreIndexed.Package"
+      },
+      "Packages": [
+        { "PackageIdentifier": "Anthropic.Claude" },
+        { "PackageIdentifier": "Ollama.Ollama" },
+        { "PackageIdentifier": "Anysphere.Cursor" },
+
+        { "PackageIdentifier": "Brave.Brave" },
+        { "PackageIdentifier": "Zen-Team.Zen-Browser" },
+        { "PackageIdentifier": "Mozilla.Thunderbird" },
+
+        { "PackageIdentifier": "DolphinEmulator.Dolphin" },
+        { "PackageIdentifier": "Parsec.Parsec" },
+        { "PackageIdentifier": "Valve.Steam" },
+
+        { "PackageIdentifier": "TheDocumentFoundation.LibreOffice" },
+        { "PackageIdentifier": "Obsidian.Obsidian" },
+
+        { "PackageIdentifier": "Cloudflare.Warp" },
+        { "PackageIdentifier": "PortSwigger.BurpSuite.Community" },
+        { "PackageIdentifier": "WiresharkFoundation.Wireshark" },
+
+        { "PackageIdentifier": "Balena.Etcher" },
+        { "PackageIdentifier": "OBSProject.OBSStudio" },
+        { "PackageIdentifier": "GIMP.GIMP" },
+
+        { "PackageIdentifier": "Vencord.Vesktop" },
+        { "PackageIdentifier": "Spotify.Spotify" },
+        { "PackageIdentifier": "Postman.Postman" },
+
+        { "PackageIdentifier": "qBittorrent.qBittorrent" },
+        { "PackageIdentifier": "VSCodium.VSCodium" },
+        { "PackageIdentifier": "Iterate.Cyberduck" },
+        { "PackageIdentifier": "wez.wezterm" },
+
+        { "PackageIdentifier": "Bitwarden.Bitwarden" },
+
+        { "PackageIdentifier": "Docker.DockerDesktop" },
+        { "PackageIdentifier": "Microsoft.PowerShell" },
+        { "PackageIdentifier": "Microsoft.PowerToys" },
+        { "PackageIdentifier": "Git.Git" },
+        { "PackageIdentifier": "GitHub.cli" },
+        { "PackageIdentifier": "gerardog.gsudo" }
+      ]
+    }
+  ],
+  "WinGetVersion": "1.8.1911"
+}
