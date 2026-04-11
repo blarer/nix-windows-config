@@ -58,6 +58,7 @@
         setopt NO_BEEP
         setopt PROMPT_SUBST
         setopt INTERACTIVE_COMMENTS
+        unsetopt NOMATCH
 
         _init_cache="''${XDG_CACHE_HOME:-$HOME/.cache}/zsh-init"
         [[ -d "$_init_cache" ]] || mkdir -p "$_init_cache"
