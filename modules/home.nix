@@ -24,8 +24,8 @@
       EDITOR = "hx";
       VISUAL = "hx";
 
-      LANG = "en_US.UTF-8";
-      LC_ALL = "en_US.UTF-8";
+      LANG = "C.UTF-8";
+      LC_ALL = "C.UTF-8";
 
       PYTHONDONTWRITEBYTECODE = "1";
       PYTHONUNBUFFERED = "1";

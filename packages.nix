@@ -50,6 +50,7 @@ in
     nixd
     nixfmt-rfc-style
     ruff
+    taplo
     tealdeer
     nodejs
 
