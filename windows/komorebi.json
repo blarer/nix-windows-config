@@ -14,7 +14,12 @@
   "resize_delta": 50,
   "window_container_behaviour": "Create",
   "float_override": false,
-  "global_work_area_offset": null,
+  "global_work_area_offset": {
+    "left": 0,
+    "right": 0,
+    "top": 40,
+    "bottom": 0
+  },
   "monitors": [
     {
       "workspaces": [
