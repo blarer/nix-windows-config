@@ -44,8 +44,8 @@ alt + shift + down  : komorebic stack down
 # komorebi has no modal "service mode"; bind individual actions
 # alt+shift+r → flatten/reset workspace tree
 alt + shift + r : komorebic flatten-workspace
-# alt+shift+backspace → close all but current
-alt + shift + backspace : komorebic close-all-but-focused
+# alt+shift+x → close all but current (was alt+shift+backspace; whkd rejects backspace)
+alt + shift + x : komorebic close-all-but-focused
 
 # ─── Back-and-Forth (Alt+Tab) ─────────────────────────────
 # komorebi lacks native back-and-forth; cycle previous workspace
@@ -68,7 +68,7 @@ alt + shift + oem_plus : komorebic resize-axis horizontal increase
 alt + shift + oem_minus : komorebic resize-axis horizontal decrease
 
 # ─── Open Terminal (Alt+Enter) ────────────────────────────
-alt + enter : wezterm-gui start
+alt + return : wezterm-gui start
 
 # ─── Move Workspace to Next Monitor ───────────────────────
 alt + shift + tab : komorebic move-workspace-to-monitor next
