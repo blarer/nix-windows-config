@@ -371,16 +371,58 @@
       settings = {
         add_newline = false;
         command_timeout = 300;
+        palette = "default";
+
         format = "$directory$git_branch$git_status$cmd_duration$character";
-        character = {
-          success_symbol = "[❯](purple bold)";
-          error_symbol = "[❯](red bold)";
+
+        palettes.default = {
+          prompt_ok = "#8047c1";
+          prompt_err = "#e23140";
+          icon = "#161514";
+          background = "#35312c";
+          directory = "#9f31e2";
+          status = "#e23140";
+          git_branch = "#31e268";
+          git_status = "#31e268";
+          cmd_duration = "#e26f31";
+          duration = "#e26f31";
         };
+
+        character = {
+          success_symbol = "[❯](fg:prompt_ok bold)";
+          error_symbol = "[❯](fg:prompt_err bold)";
+        };
+
         directory = {
+          format = "[](fg:directory)[](fg:icon bg:directory)[](fg:directory bg:background)[ $path ](bg:background)[](fg:background)";
           truncate_to_repo = false;
           truncation_length = 3;
+          truncation_symbol = "…/";
+          substitutions = {
+            "Documents" = "󰈙";
+            "Downloads" = "";
+            "Music" = "󰝚";
+            "Pictures" = "";
+            "Desktop" = "󰟡";
+            "Repos" = "󰲋";
+          };
         };
-        cmd_duration.min_time = 2000;
+
+        git_branch = {
+          format = "[](fg:git_branch)[](fg:icon bg:git_branch)[](fg:git_branch bg:background)[ $branch ](bg:background)";
+          disabled = false;
+        };
+
+        git_status = {
+          format = "[](fg:git_status)[$all_status$ahead_behind](fg:icon bg:git_status)[](fg:git_status)";
+          disabled = false;
+        };
+
+        cmd_duration = {
+          format = "[](fg:cmd_duration)[ $duration ](fg:icon bg:cmd_duration)[](fg:cmd_duration)";
+          min_time = 2000;
+          disabled = false;
+        };
       };
     };
 
