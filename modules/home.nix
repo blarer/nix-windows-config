@@ -394,7 +394,7 @@
         };
 
         directory = {
-          format = "[](fg:directory)[](fg:icon bg:directory)[](fg:directory bg:background)[ $path ](bg:background)[](fg:background)";
+          format = "[](fg:directory)[](fg:icon bg:directory)[](fg:directory bg:background)[ $path ](bg:background)[](fg:background)";
           truncate_to_repo = false;
           truncation_length = 3;
           truncation_symbol = "…/";
@@ -409,12 +409,12 @@
         };
 
         git_branch = {
-          format = "[](fg:git_branch)[](fg:icon bg:git_branch)[](fg:git_branch bg:background)[ $branch ](bg:background)";
+          format = "[](fg:git_branch)[](fg:icon bg:git_branch)[](fg:git_branch bg:background)[ $branch ](bg:background)";
           disabled = false;
         };
 
         git_status = {
-          format = "[](fg:git_status)[$all_status$ahead_behind](fg:icon bg:git_status)[](fg:git_status)";
+          format = "[](fg:git_status)[$all_status$ahead_behind](fg:icon bg:git_status)[](fg:git_status)";
           disabled = false;
         };
 
