@@ -52,14 +52,22 @@ $apps = @(
     'Bitwarden.Bitwarden'
 )
 foreach ($id in $apps) {
-    $r = winget list --id $id --exact 2>$null | Select-String -Pattern $id
-    if ($r) { Pass $id } else { Fail "$id MISSING" }
+    # winget list returns 0 if package found, non-zero otherwise.
+    # Output is UTF-16 with cell padding so pattern matching is unreliable.
+    & winget list --id $id --exact --accept-source-agreements *> $null
+    if ($LASTEXITCODE -eq 0) { Pass $id } else { Fail "$id MISSING" }
 }
 
 Heading "Scoop apps"
+# scoop info shows "Installed   : <version>" line when installed locally,
+# or no Installed line at all when not installed.
 foreach ($s in 'komorebi','whkd','FiraCode-NF','mpv','notepadplusplus','7zip') {
-    $r = scoop list 2>$null | Select-String -Pattern "^$s\s"
-    if ($r) { Pass $s } else { Fail "$s MISSING" }
+    $info = & scoop info $s 2>$null | Out-String
+    if ($info -match 'Installed\s*:\s*\d') {
+        Pass $s
+    } else {
+        Fail "$s MISSING"
+    }
 }
 
 Heading "Komorebi config files"
