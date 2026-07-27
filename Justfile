@@ -33,6 +33,23 @@ switch-fast:
 build:
     nix run home-manager/master -- build --flake {{config_dir}}#wsl
 
+# Build without activating, to see what would change
+dry-run:
+    nix run home-manager/master -- build --flake {{config_dir}}#wsl
+    nvd diff ~/.local/state/nix/profiles/home-manager result
+
+# ─────────────────────────────────────────────────────────────
+# Verification
+# ─────────────────────────────────────────────────────────────
+
+# WSL-side smoke test of the activated generation
+smoke:
+    zsh {{config_dir}}/windows/smoketest.zsh
+
+# Everything that can be checked without activating
+check: fmt-check lint deadnix check-flake
+    @echo "All checks passed."
+
 # ─────────────────────────────────────────────────────────────
 # Updates
 # ─────────────────────────────────────────────────────────────
@@ -51,6 +68,8 @@ update-nixpkgs:
 
 fmt:
     nix fmt {{config_dir}}
+fmt-check:
+    nix fmt {{config_dir}} -- --ci
 lint:
     statix check {{config_dir}}
 deadnix:
@@ -89,6 +108,10 @@ info:
     nix flake info {{config_dir}}
 show:
     nix flake show {{config_dir}}
+repl:
+    nix repl --expr 'builtins.getFlake "path:{{config_dir}}"'
+packages:
+    nix-store -q --references ~/.nix-profile | sort
 search QUERY:
     nix search nixpkgs#{{QUERY}}
 pkg-info PKG:

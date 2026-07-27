@@ -13,6 +13,12 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # treefmt-nix: drives `nix fmt` / `just fmt` / `just fmt-check`
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -30,6 +36,8 @@
       };
 
       package_sets = import ./packages.nix { inherit pkgs; };
+
+      treefmtEval = inputs.treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
     in
     {
       homeConfigurations.wsl = inputs.home-manager.lib.homeManagerConfiguration {
@@ -43,6 +51,14 @@
           inputs.nix-index-database.homeModules.nix-index
           ./modules/home.nix
         ];
+      };
+
+      formatter.${system} = treefmtEval.config.build.wrapper;
+
+      checks.${system}.formatting = treefmtEval.config.build.check self;
+
+      devShells.${system}.default = pkgs.mkShell {
+        packages = package_sets.dev.shared ++ package_sets.dev.python;
       };
     };
 }
