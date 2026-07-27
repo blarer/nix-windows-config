@@ -69,10 +69,10 @@ secrets later.
 
 ## 7. Interop tips
 
-- **Run Windows binaries from WSL:** `wezterm.exe`, `code.exe`, `explorer.exe .`
-- **Launch wezterm pointing at WSL:** set
-  `config.default_prog = { "wsl.exe", "~", "-d", "Ubuntu" }` in
-  `windows/wezterm/wezterm.lua`.
+- **Run Windows binaries from WSL:** `alacritty.exe`, `code.exe`, `explorer.exe .`
+- **Point Alacritty at WSL:** uncomment the `wsl.exe` block in
+  `windows/alacritty/alacritty.toml` (it defaults to `pwsh` so the terminal
+  still works before the distro exists), then redeploy with `bootstrap.ps1`.
 - **Atuin sync across host + WSL:** use the same server + key.
 - **clipboard:** WSL2 auto-bridges `clip.exe` / PowerShell `Get-Clipboard`.
   Add `alias pbcopy=clip.exe` in `~/.zshrc.local` if you want macOS parity.
@@ -91,6 +91,6 @@ secrets later.
 | uv + pyright + Python 3.14 free-threading | 100% |
 | claude-code + opencode | 100% |
 | agenix secrets | optional (step 6) |
-| WezTerm | Windows host, Windows-native config |
+| Terminal | Alacritty on the Windows host |
 | Tiling WM | GlazeWM on the Windows host |
 | Fonts (FiraCode NF) | Windows host via scoop nerd-fonts bucket |

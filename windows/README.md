@@ -1,7 +1,7 @@
 # Windows port — nix-windows-config
 
 Hybrid setup: **WSL2 + Nix** reuses `modules/` 1:1 for the shell, CLI tools,
-editor, and dev env. **Windows host** runs WezTerm, GlazeWM (tiling WM with
+editor, and dev env. **Windows host** runs Alacritty, GlazeWM (tiling WM with
 built-in hotkeys), and GUI apps installed via winget/scoop.
 
 ## Layout
@@ -12,7 +12,7 @@ built-in hotkeys), and GUI apps installed via winget/scoop.
 | `winget.json` | `winget import`-compatible GUI app manifest |
 | `scoop-packages.txt` | Fonts, glazewm, Windows-native fallbacks |
 | `glazewm/config.yaml` | Tiling WM + hotkeys (Alt+hjkl etc), deployed to `~/.glzr/glazewm/` |
-| `wezterm/wezterm.lua` | Windows-variant WezTerm config (CMD→CTRL+SHIFT) |
+| `alacritty/alacritty.toml` | Terminal config, deployed to `%APPDATA%\alacritty\` |
 | `smoketest-windows.ps1` | Windows-side verification; exits non-zero on failure |
 | `smoketest.zsh` | WSL-side verification of the home-manager generation |
 | `NOTES.md` | Which macOS apps were dropped and why |
@@ -67,7 +67,7 @@ GlazeWM autostarts via a `GlazeWM.lnk` shortcut in the Startup folder, which
 | Pentest tools (nmap, masscan, nikto, wireguard) | nix-darwin | WSL2 + Nix | 100% |
 | Python 3.14 free-threading + uv + pyright | nix-darwin | WSL2 + Nix | 100% |
 | claude-code + opencode | nix-darwin | WSL2 + Nix | 100% |
-| WezTerm | nix-darwin | Windows-native (port of lua config) | 95% |
+| Terminal | WezTerm | Alacritty (ported theme + keys) | 90% |
 | Tiling WM | AeroSpace | GlazeWM | 90% |
 | GUI apps (Brave, Obsidian, Cursor, OBS, Burp, Spotify, …) | brew cask | winget | 80% (some dropped — see NOTES.md) |
 | Fonts (FiraCode NF, Noto Emoji) | nixpkgs | scoop nerd-fonts | 100% |

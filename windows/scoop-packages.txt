@@ -5,7 +5,7 @@
 # scoop bucket add extras
 # scoop bucket add nerd-fonts
 
-# ─ Fonts (matches windows/wezterm/wezterm.lua) ─
+# ─ Fonts (matches windows/alacritty/alacritty.toml) ─
 FiraCode-NF
 Noto-Color-Emoji
 

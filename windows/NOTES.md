@@ -27,6 +27,18 @@ difftastic, gh, helix, uv, ruff, nixd, just, tokei, hyperfine, jq, yq, nmap,
 masscan, nikto, wireguard, claude-code, opencode, etc.) lives inside WSL2 via
 the Nix flake — identical versions to macOS. Do NOT reinstall these natively.
 
+## Terminal history
+
+The port originally shipped a WezTerm lua config. It was replaced by
+**Alacritty**, whose config lives at `windows/alacritty/alacritty.toml` and is
+deployed to `%APPDATA%\alacritty\alacritty.toml`.
+
+The "Fluent Dark" palette, FiraCode Nerd Font setup, and CTRL+SHIFT keybinding
+convention carried over 1:1. What did not carry over, because Alacritty has no
+such concepts by design: tabs, splits/panes, the lua status bar, workspaces,
+and the leader-key tables. Use GlazeWM (`alt+hjkl`) for window splitting, or a
+multiplexer inside the shell.
+
 ## Window manager history
 
 The first cut of this port used **komorebi + whkd**. It was replaced by

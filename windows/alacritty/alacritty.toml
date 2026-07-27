@@ -1,0 +1,144 @@
+# Alacritty configuration — Windows
+#
+# Deployed by windows/bootstrap.ps1 to:
+#   %APPDATA%\alacritty\alacritty.toml
+#
+# Ported from the WezTerm config this repo used previously: same "Fluent Dark"
+# palette, same FiraCode Nerd Font setup, same CTRL|SHIFT keybinding
+# convention. Alacritty has no tabs/panes/status bar by design, so those
+# WezTerm bindings have no equivalent here; use GlazeWM (alt+hjkl) for window
+# splitting instead, or a multiplexer inside the shell.
+
+[general]
+live_config_reload = true
+
+# ── Shell ──────────────────────────────────────────────────────────────────
+# PowerShell 7 by default so Alacritty works on a fresh machine before WSL
+# exists. Once `wsl --install -d Ubuntu` has run and the home-manager flake is
+# activated, swap the two blocks below for a WSL-first terminal.
+[terminal.shell]
+program = "pwsh.exe"
+args = ["-NoLogo"]
+# program = "wsl.exe"
+# args = ["~", "-d", "Ubuntu"]
+
+# ── Window ─────────────────────────────────────────────────────────────────
+[window]
+padding = { x = 8, y = 8 }
+dynamic_padding = true
+decorations = "Full"
+opacity = 0.96
+blur = true
+startup_mode = "Windows"
+dynamic_title = true
+
+# ── Font ───────────────────────────────────────────────────────────────────
+[font]
+size = 13.0
+
+[font.normal]
+family = "FiraCode Nerd Font"
+style = "Regular"
+
+[font.bold]
+family = "FiraCode Nerd Font"
+style = "Bold"
+
+[font.italic]
+family = "FiraCode Nerd Font"
+style = "Italic"
+
+[font.offset]
+# Approximates WezTerm's line_height = 1.1
+y = 2
+
+# ── Scrolling ──────────────────────────────────────────────────────────────
+[scrolling]
+history = 100000
+multiplier = 3
+
+# ── Cursor ─────────────────────────────────────────────────────────────────
+[cursor]
+style = { shape = "Beam", blinking = "On" }
+blink_interval = 500
+unfocused_hollow = true
+
+# ── Bell ───────────────────────────────────────────────────────────────────
+[bell]
+animation = "EaseOutExpo"
+duration = 75
+color = "#d0d0d0"
+
+# ── Selection ──────────────────────────────────────────────────────────────
+[selection]
+save_to_clipboard = true
+
+# ── Mouse ──────────────────────────────────────────────────────────────────
+[mouse]
+hide_when_typing = true
+
+# ── Colors: "Fluent Dark" (ported 1:1 from the WezTerm scheme) ─────────────
+[colors.primary]
+foreground = "#d0d0d0"
+background = "#0a0a0a"
+
+[colors.cursor]
+text = "#0a0a0a"
+cursor = "#d0d0d0"
+
+[colors.selection]
+text = "#f5f5f5"
+background = "#1c1c1c"
+
+[colors.normal]
+black   = "#0a0a0a"
+red     = "#ff6b81"
+green   = "#8cd17d"
+yellow  = "#e3c26f"
+blue    = "#6fa4ff"
+magenta = "#c792ea"
+cyan    = "#6ad5c9"
+white   = "#d0d0d0"
+
+[colors.bright]
+black   = "#1c1c1c"
+red     = "#ff7b91"
+green   = "#9fe38c"
+yellow  = "#f0d78a"
+blue    = "#7cb4ff"
+magenta = "#d8a4f0"
+cyan    = "#7de3d4"
+white   = "#f5f5f5"
+
+# ── Keybindings ────────────────────────────────────────────────────────────
+# Windows convention: CTRL+SHIFT replaces macOS CMD.
+[keyboard]
+bindings = [
+  # Clipboard
+  { key = "C", mods = "Control|Shift", action = "Copy" },
+  { key = "V", mods = "Control|Shift", action = "Paste" },
+
+  # Font size
+  { key = "Equals", mods = "Control", action = "IncreaseFontSize" },
+  { key = "Minus",  mods = "Control", action = "DecreaseFontSize" },
+  { key = "Key0",   mods = "Control", action = "ResetFontSize" },
+
+  # Window
+  { key = "N",      mods = "Control|Shift", action = "CreateNewWindow" },
+  { key = "Return", mods = "Alt",           action = "ToggleFullscreen" },
+
+  # Search (WezTerm's CTRL+SHIFT+F)
+  { key = "F", mods = "Control|Shift", action = "SearchForward" },
+
+  # Scrollback
+  { key = "U", mods = "Control|Shift", action = "ScrollPageUp" },
+  { key = "D", mods = "Control|Shift", action = "ScrollPageDown" },
+  { key = "Home", mods = "Control|Shift", action = "ScrollToTop" },
+  { key = "End",  mods = "Control|Shift", action = "ScrollToBottom" },
+
+  # Vi mode — Alacritty's answer to WezTerm's copy mode
+  { key = "Space", mods = "Control|Shift", action = "ToggleViMode" },
+
+  # Preserve WezTerm's shift+enter -> ESC+CR (meta-newline for shells/REPLs)
+  { key = "Return", mods = "Shift", chars = "\u001b\r" },
+]

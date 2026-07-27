@@ -1,7 +1,7 @@
 <#
     Windows bootstrap — nix-windows-config
-    Installs: winget apps, scoop + CLI fallbacks, fonts, GlazeWM,
-              WezTerm config, WSL2 (Ubuntu) for the Nix flake.
+    Installs: winget apps, scoop + CLI fallbacks, fonts, GlazeWM, Alacritty
+              config, WSL2 (Ubuntu) for the Nix flake.
 
     Runs on Windows PowerShell 5.1+ (stock) or PowerShell 7.
     From an elevated prompt, in this directory:
@@ -78,10 +78,12 @@ foreach ($pkg in $scoopList) {
 }
 
 # ─── 3. Deploy configs ────────────────────────────────────────────────────
-Write-Step 'Deploying WezTerm config'
-Copy-Item -Force (Join-Path $WinDir 'wezterm\wezterm.lua') `
-                 (Join-Path $env:USERPROFILE '.wezterm.lua')
-Write-Ok '~\.wezterm.lua'
+Write-Step 'Deploying Alacritty config'
+$alacrittyDir = Join-Path $env:APPDATA 'alacritty'
+New-Item -ItemType Directory -Force -Path $alacrittyDir | Out-Null
+Copy-Item -Force (Join-Path $WinDir 'alacritty\alacritty.toml') `
+                 (Join-Path $alacrittyDir 'alacritty.toml')
+Write-Ok (Join-Path $alacrittyDir 'alacritty.toml')
 
 Write-Step 'Deploying GlazeWM config'
 $glazeDir    = Join-Path $env:USERPROFILE '.glzr\glazewm'
@@ -161,7 +163,7 @@ Next steps:
      (see windows/WSL2.md for details)
   3. Windows-side only:
        - glazewm start   # tiling WM + hotkeys (autostarts on login)
-       - wezterm         # launch terminal
+       - alacritty       # launch terminal (alt+enter)
 
   Verify with:  powershell -NoProfile -File windows\smoketest-windows.ps1
 '@ -ForegroundColor Green

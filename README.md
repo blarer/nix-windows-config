@@ -3,7 +3,7 @@
 Windows (WSL2 + home-manager) counterpart to `nix-darwin-config`. Hybrid setup:
 
 - **WSL2 Ubuntu + home-manager standalone** — shell, CLI tools, editor, dev env reused 1:1 from the Darwin modules (filtered to drop macOS-only deps).
-- **Windows host** — WezTerm, GlazeWM (tiling WM, built-in hotkeys), GUI apps via winget/scoop.
+- **Windows host** — Alacritty, GlazeWM (tiling WM, built-in hotkeys), GUI apps via winget/scoop.
 
 ## Layout
 
@@ -15,7 +15,7 @@ Windows (WSL2 + home-manager) counterpart to `nix-darwin-config`. Hybrid setup:
 | `windows/bootstrap.ps1` | One-shot Windows installer (winget + scoop + configs + WSL2) |
 | `windows/winget.json` | GUI apps |
 | `windows/glazewm/config.yaml` | Tiling WM + hotkey config (deployed to `~/.glzr/glazewm/`) |
-| `windows/wezterm/wezterm.lua` | WezTerm terminal config |
+| `windows/alacritty/alacritty.toml` | Terminal config (deployed to `%APPDATA%\alacritty\`) |
 | `windows/smoketest-windows.ps1` | Verifies the Windows side; exits non-zero on failure |
 
 ## Activate WSL side

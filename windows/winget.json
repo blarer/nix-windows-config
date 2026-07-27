@@ -40,7 +40,7 @@
         { "PackageIdentifier": "qBittorrent.qBittorrent" },
         { "PackageIdentifier": "VSCodium.VSCodium" },
         { "PackageIdentifier": "Iterate.Cyberduck" },
-        { "PackageIdentifier": "wez.wezterm" },
+        { "PackageIdentifier": "Alacritty.Alacritty" },
 
         { "PackageIdentifier": "Bitwarden.Bitwarden" },
 

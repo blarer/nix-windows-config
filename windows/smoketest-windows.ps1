@@ -70,23 +70,39 @@ if ($distros) {
     Info "fix:  wsl --install -d Ubuntu   (then see windows\WSL2.md)"
 }
 
-Heading "WezTerm"
-# WezTerm may be installed via winget, via the vendor MSI (Program Files), or
-# as a portable extract, so probe for the binary rather than a package ID.
-$wezExe = @(
-    (Get-Command wezterm.exe -ErrorAction SilentlyContinue).Source,
-    "$env:ProgramFiles\WezTerm\wezterm.exe",
-    "$env:LOCALAPPDATA\Programs\WezTerm\wezterm.exe"
+Heading "Alacritty"
+$alaExe = @(
+    (Get-Command alacritty.exe -ErrorAction SilentlyContinue).Source,
+    "$env:ProgramFiles\Alacritty\alacritty.exe"
 ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-if ($wezExe) { Pass $wezExe } else { Fail "wezterm.exe not found" }
+if ($alaExe) { Pass $alaExe } else { Fail "alacritty.exe not found" }
 
-$wez = Get-Content "$env:USERPROFILE\.wezterm.lua" -ErrorAction SilentlyContinue |
-       Select-String -Pattern 'config\.default_prog'
-if ($wez) { $wez | ForEach-Object { Info $_ } } else { Info "default_prog not set" }
+$repoAla = Join-Path $PSScriptRoot 'alacritty\alacritty.toml'
+$liveAla = Join-Path $env:APPDATA 'alacritty\alacritty.toml'
+if (Test-Path $liveAla) {
+    Pass $liveAla
+    if ((Test-Path $repoAla) -and
+        (Get-FileHash $liveAla).Hash -ne (Get-FileHash $repoAla).Hash) {
+        Fail "live alacritty.toml DIVERGED from repo copy"
+    }
+} else {
+    Fail "$liveAla MISSING - alacritty is running on defaults"
+}
+
+# The terminal keybinding is only useful if it points at an installed program.
+$termBind = Select-String -Path (Join-Path $PSScriptRoot 'glazewm\config.yaml') `
+                          -Pattern "shell-exec\s+(\S+)'" |
+            ForEach-Object { $_.Matches[0].Groups[1].Value }
+if ($termBind -contains 'alacritty') {
+    Pass "alt+enter -> alacritty"
+} else {
+    Fail "alt+enter does not launch alacritty (found: $($termBind -join ', '))"
+}
 
 Heading "Winget apps"
 $apps = @(
     'Anthropic.Claude',
+    'Alacritty.Alacritty',
     'Brave.Brave',
     'Microsoft.PowerShell',
     'GitHub.cli',
