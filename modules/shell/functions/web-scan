@@ -1,0 +1,7 @@
+if [[ -z "$1" ]]; then
+  echo "Usage: web-scan <host|url>"
+  return 1
+fi
+# "$@": first arg is the -h value, rest pass through as nikto flags
+# (web-scan host -ssl -port 8443)
+nikto -h "$@"

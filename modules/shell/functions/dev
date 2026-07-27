@@ -1,0 +1,12 @@
+if [ -f flake.nix ]; then
+  echo "Entering local dev shell..."
+  nix develop
+else
+  local shell="${1:-default}"
+  local flake="path:$HOME/nix-windows-config#$shell"
+  echo "Entering $flake shell..."
+  nix develop "$flake" || {
+    echo "dev: shell '$shell' not found. Available: default"
+    return 1
+  }
+fi

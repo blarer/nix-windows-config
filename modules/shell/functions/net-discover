@@ -1,0 +1,6 @@
+local subnet="${1:-192.168.1.0/24}"
+echo "==> ARP scan: ${subnet}"
+sudo arp-scan --localnet 2>/dev/null || sudo arp-scan "${subnet}"
+echo ""
+echo "==> nmap ping sweep: ${subnet}"
+sudo nmap -sn "${subnet}"

@@ -1,0 +1,6 @@
+local name="$1"
+if [ -z "$name" ]; then
+  ls -la ~/.marks/ 2>/dev/null || echo "No marks set"
+  return
+fi
+cd -P "$HOME/.marks/$name" 2>/dev/null || echo "Mark not found: $name"

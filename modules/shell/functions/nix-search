@@ -1,0 +1,5 @@
+if [ -z "$1" ]; then
+  echo "Usage: nix-search <query>"
+  return 1
+fi
+nix search nixpkgs#"$1" --json 2>/dev/null | jq -r 'to_entries[] | "\(.key | split(".") | .[-1]): \(.value.description // "No description")"' | head -20

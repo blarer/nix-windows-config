@@ -1,0 +1,10 @@
+local conf="/etc/wireguard/home.conf"
+local action="${1:-toggle}"
+if [[ "$action" == "toggle" ]]; then
+  if sudo wg show home &>/dev/null; then
+    action="down"
+  else
+    action="up"
+  fi
+fi
+sudo wg-quick "${action}" "${conf}"

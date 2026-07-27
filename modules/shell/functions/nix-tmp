@@ -1,0 +1,10 @@
+if [ $# -eq 0 ]; then
+  echo "Usage: nix-tmp <pkg1> [pkg2] ..."
+  return 1
+fi
+local pkgs=""
+for pkg in "$@"; do
+  pkgs="$pkgs nixpkgs#$pkg"
+done
+echo "Creating temporary shell with: $*"
+nix shell $pkgs

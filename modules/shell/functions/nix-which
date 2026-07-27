@@ -1,0 +1,5 @@
+if [ -z "$1" ]; then
+  echo "Usage: nix-which <binary>"
+  return 1
+fi
+nix-locate --top-level -w "/bin/$1" 2>/dev/null | head -10

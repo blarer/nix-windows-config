@@ -1,0 +1,6 @@
+if [[ -z "$1" ]]; then
+  echo "Usage: port-scan <host> [nmap-args]"
+  return 1
+fi
+local host="$1"; shift
+sudo nmap -sV -sC -O --open -T4 "$@" "${host}"

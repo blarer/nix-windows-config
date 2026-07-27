@@ -1,0 +1,5 @@
+if [[ -z "$1" ]]; then
+  echo "Usage: vuln-scan <host>"
+  return 1
+fi
+sudo nmap -sV --script vuln -T4 "$1"

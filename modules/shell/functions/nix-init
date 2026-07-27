@@ -1,0 +1,7 @@
+local template="${1:-default}"
+if [ -f flake.nix ]; then
+  echo "flake.nix already exists in current directory"
+  return 1
+fi
+nix flake init -t "github:nix-community/templates#$template"
+echo "Initialized with template: $template"

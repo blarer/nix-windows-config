@@ -57,7 +57,18 @@
     '';
   };
 
-  xdg.enable = true;
+  xdg = {
+    enable = true;
+
+    # Deploy autoloaded zsh function bodies to ~/.config/zsh/functions/ so the
+    # autoload statements in initContent can find them on $fpath. Bodies are
+    # plain zsh files (no `function name() { }` wrapper) — that is the autoload
+    # calling convention.
+    configFile."zsh/functions" = {
+      source = ./shell/functions;
+      recursive = true;
+    };
+  };
 
   programs = {
     zsh = {
@@ -93,21 +104,22 @@
       };
 
       initContent = ''
-        setopt EXTENDED_GLOB
-        setopt GLOB_DOTS
-        setopt HIST_FIND_NO_DUPS
-        setopt NO_BEEP
-        setopt PROMPT_SUBST
-        setopt INTERACTIVE_COMMENTS
-        unsetopt NOMATCH
+        # Single setopt call: extended globs, dotfile globs, dedup hist search,
+        # no bell, prompt substitution, interactive comments.
+        setopt EXTENDED_GLOB GLOB_DOTS HIST_FIND_NO_DUPS NO_BEEP PROMPT_SUBST INTERACTIVE_COMMENTS
+        # NOMATCH stays on: the glob cleanups below use (N) NULL_GLOB instead,
+        # which is scoped to the pattern rather than to the whole shell.
 
-        # ─ Tool init bundle (cached) ─
+        # ─ Tool init bundle (cached + byte-compiled) ─
         _init_cache="''${XDG_CACHE_HOME:-$HOME/.cache}/zsh-init"
         [[ -d "$_init_cache" ]] || mkdir -p "$_init_cache"
         _bundle_ver="bundle-${pkgs.zoxide.version}_${pkgs.starship.version}_${pkgs.direnv.version}_${pkgs.atuin.version}_${pkgs.fzf.version}"
         _bundle="$_init_cache/$_bundle_ver.zsh"
         if [[ ! -f "$_bundle" ]]; then
-          command rm -f "$_init_cache"/bundle-*.zsh 2>/dev/null || true
+          # (N) = NULL_GLOB: a non-matching pattern expands to nothing instead
+          # of erroring. zsh's NOMATCH fires before rm runs, so 2>/dev/null
+          # alone cannot suppress it.
+          command rm -f "$_init_cache"/bundle-*.zsh(N) "$_init_cache"/bundle-*.zsh.zwc(N) 2>/dev/null || true
           {
             ${pkgs.zoxide}/bin/zoxide init zsh --cmd z
             echo ""
@@ -121,243 +133,74 @@
             ${pkgs.fzf}/bin/fzf --zsh | sed 's/^/  /'
             echo 'fi'
           } > "$_bundle"
+          # Byte-compile: source picks up the .zwc automatically, skipping the
+          # re-parse of a few hundred lines on every shell start.
+          zcompile "$_bundle" 2>/dev/null || true
         fi
         source "$_bundle"
         unset _init_cache _bundle_ver _bundle
 
-        # ─ Cached completions ─
+        # ─ Cached completions (keyed by package version) ─
         _cache="''${XDG_CACHE_HOME:-$HOME/.cache}/zsh-completions"
         [[ -d "$_cache" ]] || mkdir -p "$_cache"
 
-        _ghv="$_cache/gh.${pkgs.gh.version}.zsh"
-        if [[ ! -f "$_ghv" ]]; then
-          command rm -f "$_cache"/gh.*.zsh 2>/dev/null || true
-          ${pkgs.gh}/bin/gh completion -s zsh > "$_ghv" 2>/dev/null
+        # Cache a tool's zsh completion by package version; regenerate on miss.
+        _cache_comp() {
+          local tool=$1 ver=$2 gen_cmd=$3
+          local f="$_cache/$tool.$ver.zsh"
+          if [[ ! -f "$f" ]]; then
+            command rm -f "$_cache/$tool".*.zsh(N) "$_cache/$tool".*.zsh.zwc(N) 2>/dev/null || true
+            eval "$gen_cmd" > "$f" 2>/dev/null
+            zcompile "$f" 2>/dev/null || true
+          fi
+          source "$f"
+        }
+        _cache_comp gh   "${pkgs.gh.version}"   "${pkgs.gh}/bin/gh completion -s zsh"
+        _cache_comp just "${pkgs.just.version}" "${pkgs.just}/bin/just --completions zsh"
+        unset -f _cache_comp
+        unset _cache
+
+        # ─────────────────────────────────────────────────────────────
+        # Autoloaded shell functions — bodies live in ./shell/functions/
+        # (deployed to ~/.config/zsh/functions/ via xdg.configFile below).
+        # autoload makes loading lazy: the file is only sourced on first
+        # call, which replaces the old eval-a-heredoc-on-first-call trick.
+        # ─────────────────────────────────────────────────────────────
+        fpath=(${config.xdg.configHome}/zsh/functions $fpath)
+        autoload -Uz \
+          dev nixconf gwt mark jump \
+          extract vpn-home \
+          net-discover port-scan vuln-scan fast-scan web-scan \
+          nix-init nix-search nix-info nix-which nix-tmp
+
+        # ─────────────────────────────────────────────────────────────
+        # Fast Syntax Highlighting — must be sourced LAST in zshrc.
+        # Sourced via a version-keyed zcompiled copy of the WHOLE plugin
+        # dir (the entry script sources sibling files relative to itself,
+        # so a lone-file copy breaks). Store files are read-only; the
+        # writable copy lets zcompile drop .zwc next to each file, which
+        # `source` then picks up automatically.
+        # ─────────────────────────────────────────────────────────────
+        if [[ $options[zle] = on ]]; then
+          _fsh_cache="''${XDG_CACHE_HOME:-$HOME/.cache}/zsh-init"
+          _fsh_dir="$_fsh_cache/fsh-${pkgs.zsh-fast-syntax-highlighting.version}"
+          if [[ ! -d "$_fsh_dir" ]]; then
+            [[ -d "$_fsh_cache" ]] || mkdir -p "$_fsh_cache"
+            command rm -rf "$_fsh_cache"/fsh-*(N) 2>/dev/null || true
+            # Build in a PID-suffixed temp dir, then atomic mv: an
+            # interrupted or racing copy can never leave a half-populated
+            # dir that passes the [[ -d ]] guard above.
+            _fsh_tmp="$_fsh_dir.tmp.$$"
+            command cp -R ${pkgs.zsh-fast-syntax-highlighting}/share/zsh/plugins/fast-syntax-highlighting "$_fsh_tmp"
+            command chmod -R u+w "$_fsh_tmp"
+            for _f in fast-syntax-highlighting.plugin.zsh fast-highlight fast-string-highlight; do
+              zcompile "$_fsh_tmp/$_f" 2>/dev/null || true
+            done
+            command mv -n "$_fsh_tmp" "$_fsh_dir" 2>/dev/null || command rm -rf "$_fsh_tmp"
+          fi
+          source "$_fsh_dir/fast-syntax-highlighting.plugin.zsh"
+          unset _fsh_cache _fsh_dir _fsh_tmp _f
         fi
-        source "$_ghv"
-
-        _justv="$_cache/just.${pkgs.just.version}.zsh"
-        if [[ ! -f "$_justv" ]]; then
-          command rm -f "$_cache"/just.*.zsh 2>/dev/null || true
-          ${pkgs.just}/bin/just --completions zsh > "$_justv" 2>/dev/null
-        fi
-        source "$_justv"
-
-        unset _cache _ghv _justv
-
-        # ─ Shell functions ─
-        function dev() {
-          if [ -f flake.nix ]; then
-            nix develop
-          else
-            local shell="''${1:-default}"
-            nix develop "path:$HOME/nix-windows-config#$shell" || echo "dev: shell '$shell' not found"
-          fi
-        }
-
-        function nixconf() {
-          cd ~/nix-windows-config && ''${EDITOR:-hx} .
-        }
-
-        function gwt() {
-          local branch="$1"
-          if [ -z "$branch" ]; then
-            echo "Usage: gwt <branch-name>"
-            return 1
-          fi
-          git worktree add "../$(basename $(pwd))-$branch" -b "$branch" 2>/dev/null || \
-          git worktree add "../$(basename $(pwd))-$branch" "$branch"
-          cd "../$(basename $(pwd))-$branch"
-        }
-
-        function mark() {
-          local name="''${1:-$(basename $(pwd))}"
-          mkdir -p ~/.marks
-          ln -sf "$(pwd)" "$HOME/.marks/$name"
-          echo "Marked $(pwd) as '$name'"
-        }
-
-        function jump() {
-          local name="$1"
-          if [ -z "$name" ]; then
-            ls -la ~/.marks/ 2>/dev/null || echo "No marks set"
-            return
-          fi
-          cd -P "$HOME/.marks/$name" 2>/dev/null || echo "Mark not found: $name"
-        }
-
-        # ─ Lazy-loaded helpers ─
-        function nix-init() {
-          eval "$(cat <<'_LAZY_'
-        function nix-init() {
-          local template="''${1:-default}"
-          if [ -f flake.nix ]; then
-            echo "flake.nix already exists in current directory"
-            return 1
-          fi
-          nix flake init -t "github:nix-community/templates#$template"
-        }
-        _LAZY_
-          )"
-          nix-init "$@"
-        }
-
-        function nix-search() {
-          eval "$(cat <<'_LAZY_'
-        function nix-search() {
-          if [ -z "$1" ]; then echo "Usage: nix-search <query>"; return 1; fi
-          nix search nixpkgs#"$1" --json 2>/dev/null | jq -r 'to_entries[] | "\(.key | split(".") | .[-1]): \(.value.description // "No description")"' | head -20
-        }
-        _LAZY_
-          )"
-          nix-search "$@"
-        }
-
-        function nix-info() {
-          eval "$(cat <<'_LAZY_'
-        function nix-info() {
-          if [ -z "$1" ]; then echo "Usage: nix-info <package>"; return 1; fi
-          nix eval nixpkgs#"$1".meta --json 2>/dev/null | jq '.' || echo "Package not found: $1"
-        }
-        _LAZY_
-          )"
-          nix-info "$@"
-        }
-
-        function nix-which() {
-          eval "$(cat <<'_LAZY_'
-        function nix-which() {
-          if [ -z "$1" ]; then echo "Usage: nix-which <binary>"; return 1; fi
-          nix-locate --top-level -w "/bin/$1" 2>/dev/null | head -10
-        }
-        _LAZY_
-          )"
-          nix-which "$@"
-        }
-
-        function nix-tmp() {
-          eval "$(cat <<'_LAZY_'
-        function nix-tmp() {
-          if [ $# -eq 0 ]; then echo "Usage: nix-tmp <pkg1> [pkg2] ..."; return 1; fi
-          local pkgs=""
-          for pkg in "$@"; do pkgs="$pkgs nixpkgs#$pkg"; done
-          nix shell $pkgs
-        }
-        _LAZY_
-          )"
-          nix-tmp "$@"
-        }
-
-        function extract() {
-          eval "$(cat <<'_LAZY_'
-        function extract() {
-          if [ -z "$1" ]; then echo "Usage: extract <archive>"; return 1; fi
-          if [ -f "$1" ]; then
-            case "$1" in
-              *.tar.bz2) tar xjf "$1" ;;
-              *.tar.gz)  tar xzf "$1" ;;
-              *.tar.xz)  tar xJf "$1" ;;
-              *.bz2)     bunzip2 "$1" ;;
-              *.gz)      gunzip "$1" ;;
-              *.tar)     tar xf "$1" ;;
-              *.tbz2)    tar xjf "$1" ;;
-              *.tgz)     tar xzf "$1" ;;
-              *.zip)     unzip "$1" ;;
-              *.Z)       uncompress "$1" ;;
-              *.7z)      7zz x "$1" ;;
-              *.rar)     unrar x "$1" ;;
-              *)         echo "Unknown archive format: $1" ;;
-            esac
-          else
-            echo "File not found: $1"
-          fi
-        }
-        _LAZY_
-          )"
-          extract "$@"
-        }
-
-        function vpn-home() {
-          eval "$(cat <<'_LAZY_'
-        function vpn-home() {
-          local conf="/etc/wireguard/home.conf"
-          local action="''${1:-toggle}"
-          if [[ "$action" == "toggle" ]]; then
-            if sudo wg show home &>/dev/null; then action="down"; else action="up"; fi
-          fi
-          sudo wg-quick "''${action}" "''${conf}"
-        }
-        _LAZY_
-          )"
-          vpn-home "$@"
-        }
-
-        function net-discover() {
-          eval "$(cat <<'_LAZY_'
-        function net-discover() {
-          local subnet="''${1:-192.168.1.0/24}"
-          echo "==> ARP scan: ''${subnet}"
-          sudo arp-scan --localnet 2>/dev/null || sudo arp-scan "''${subnet}"
-          echo "==> nmap ping sweep: ''${subnet}"
-          sudo nmap -sn "''${subnet}"
-        }
-        _LAZY_
-          )"
-          net-discover "$@"
-        }
-
-        function port-scan() {
-          eval "$(cat <<'_LAZY_'
-        function port-scan() {
-          if [[ -z "$1" ]]; then echo "Usage: port-scan <host> [nmap-args]"; return 1; fi
-          local host="$1"; shift
-          sudo nmap -sV -sC -O --open -T4 "$@" "''${host}"
-        }
-        _LAZY_
-          )"
-          port-scan "$@"
-        }
-
-        function vuln-scan() {
-          eval "$(cat <<'_LAZY_'
-        function vuln-scan() {
-          if [[ -z "$1" ]]; then echo "Usage: vuln-scan <host>"; return 1; fi
-          sudo nmap -sV --script vuln -T4 "$1"
-        }
-        _LAZY_
-          )"
-          vuln-scan "$@"
-        }
-
-        function fast-scan() {
-          eval "$(cat <<'_LAZY_'
-        function fast-scan() {
-          if [[ -z "$1" ]]; then echo "Usage: fast-scan <host>"; return 1; fi
-          local host="$1"
-          local ports
-          ports=$(sudo masscan "''${host}" -p1-65535 --rate=1000 2>/dev/null \
-            | awk '/Discovered/{print $4}' | cut -d/ -f1 | sort -n | paste -sd,)
-          if [[ -z "$ports" ]]; then echo "No open ports found."; return 0; fi
-          echo "==> Open ports: ''${ports}"
-          sudo nmap -sV -sC -p "''${ports}" "''${host}"
-        }
-        _LAZY_
-          )"
-          fast-scan "$@"
-        }
-
-        function web-scan() {
-          eval "$(cat <<'_LAZY_'
-        function web-scan() {
-          if [[ -z "$1" ]]; then echo "Usage: web-scan <host|url>"; return 1; fi
-          nikto -h "$@"
-        }
-        _LAZY_
-          )"
-          web-scan "$@"
-        }
-
-        source ${pkgs.zsh-fast-syntax-highlighting}/share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh
       '';
 
       loginExtra = ''

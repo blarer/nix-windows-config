@@ -1,0 +1,4 @@
+local name="${1:-$(basename "$(pwd)")}"
+mkdir -p ~/.marks
+ln -sf "$(pwd)" "$HOME/.marks/$name"
+echo "Marked $(pwd) as '$name'"

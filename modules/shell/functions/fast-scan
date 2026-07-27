@@ -1,0 +1,16 @@
+if [[ -z "$1" ]]; then
+  echo "Usage: fast-scan <host>"
+  return 1
+fi
+local host="$1"
+echo "==> masscan: discovering open ports on ${host}..."
+local ports
+ports=$(sudo masscan "${host}" -p1-65535 --rate=1000 2>/dev/null \
+  | awk -F'[ /]' '/Discovered/{print $4}' | sort -nu | paste -sd, -)
+if [[ -z "$ports" ]]; then
+  echo "No open ports found."
+  return 0
+fi
+echo "==> Open ports: ${ports}"
+echo "==> nmap detail scan..."
+sudo nmap -sV -sC -p "${ports}" "${host}"

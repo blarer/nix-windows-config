@@ -1,0 +1,1 @@
+cd ~/nix-windows-config && ${EDITOR:-hx} .
