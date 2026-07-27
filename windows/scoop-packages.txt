@@ -1,4 +1,4 @@
-# Scoop packages - run bootstrap.ps1 to install
+﻿# Scoop packages - run bootstrap.ps1 to install
 # Buckets needed: main, extras, nerd-fonts, sysinternals
 #
 # Package names are verified by `windows/bootstrap.ps1`; a typo here shows up
@@ -23,7 +23,7 @@ mpv                  # iina replacement
 notepadplusplus      # coteditor replacement
 7zip                 # keka replacement
 sysinternals/autoruns    # sentinel replacement; needs the sysinternals bucket
-sysinternals/procexp     # activity monitor replacement
+sysinternals/process-explorer   # activity monitor replacement
 
 # - Optional CLI overlap (prefer the WSL Nix versions) -
 # Only install these if you need them OUTSIDE wsl:

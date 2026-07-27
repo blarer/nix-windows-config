@@ -1,4 +1,4 @@
-<#
+﻿<#
     Windows bootstrap — nix-windows-config
     Installs: winget apps, scoop + CLI fallbacks, fonts, GlazeWM, Alacritty
               config, WSL2 (Ubuntu) for the Nix flake.
@@ -75,6 +75,12 @@ foreach ($b in 'extras', 'nerd-fonts', 'sysinternals') {
 }
 
 Write-Step 'Installing Scoop packages'
+# Run scoop queries from a neutral directory. Scoop treats a subdirectory
+# whose name matches the package as a local manifest source, and this repo
+# has windows/glazewm/, so `scoop info glazewm` run from windows/ reports the
+# repo folder instead of the installed app and every check silently fails.
+$scoopCwd = Get-Location
+Set-Location $env:USERPROFILE
 $scoopList = Get-Content (Join-Path $WinDir 'scoop-packages.txt') |
     Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } |
     ForEach-Object { $_.Trim().Split('#')[0].Trim() } |
@@ -90,7 +96,10 @@ foreach ($pkg in $scoopList) {
     if ($info -match 'Installed\s*:\s*\d') {
         Write-Skip "$bare already installed"
     } else {
-        & scoop install $pkg
+        # scoop writes "is already installed" to stderr and exits non-zero
+        # in some states, so re-query rather than trusting the exit code.
+        & scoop install $pkg *>&1 | Out-Null
+        Start-Sleep -Milliseconds 300
         $info = & scoop info $bare 2>$null | Out-String
         if ($info -match 'Installed\s*:\s*\d') {
             Write-Ok "$bare installed"
@@ -99,6 +108,7 @@ foreach ($pkg in $scoopList) {
         }
     }
 }
+Set-Location $scoopCwd
 if ($scoopFailed) {
     Write-Warning "scoop could not install: $($scoopFailed -join ', ')"
     Write-Warning 'Check the names in windows/scoop-packages.txt against `scoop search <name>`.'

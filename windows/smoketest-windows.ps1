@@ -122,9 +122,16 @@ foreach ($id in $apps) {
 }
 
 Heading "Scoop apps"
-# scoop info shows "Installed   : <version>" line when installed locally,
+# scoop info shows an "Installed   : <version>" line when installed locally,
 # or no Installed line at all when not installed.
-foreach ($s in 'glazewm','FiraCode-NF','mpv','notepadplusplus','7zip') {
+#
+# Query from a neutral directory: scoop treats a subdirectory whose name
+# matches the package as a local manifest source, and this repo contains
+# windows/glazewm/, so running from windows/ makes `scoop info glazewm`
+# describe the repo folder instead of the installed app.
+$smokeCwd = Get-Location
+Set-Location $env:USERPROFILE
+foreach ($s in 'glazewm','FiraCode-NF','mpv','notepadplusplus','7zip','autoruns','process-explorer') {
     $info = & scoop info $s 2>$null | Out-String
     if ($info -match 'Installed\s*:\s*\d') {
         Pass $s
@@ -132,6 +139,7 @@ foreach ($s in 'glazewm','FiraCode-NF','mpv','notepadplusplus','7zip') {
         Fail "$s MISSING"
     }
 }
+Set-Location $smokeCwd
 
 Heading "Hotkey sanity (manual)"
 Write-Host "  Try in any window:"
