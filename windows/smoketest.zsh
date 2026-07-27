@@ -34,13 +34,22 @@ for b in $bins; do
   fi
 done
 
-heading "Shell functions"
+heading "Shell functions (autoloaded)"
+# Functions live in ~/.config/zsh/functions and are lazily autoloaded, so
+# $+functions is only set once .zshrc has run. Source it first, otherwise
+# every function reports MISSING when this script runs non-interactively.
+[[ -o interactive ]] || source "${ZDOTDIR:-$HOME/.config/zsh}/.zshrc" 2>/dev/null
+
 local fns=(dev nixconf gwt mark jump extract nix-init nix-search nix-info \
            nix-which nix-tmp net-discover port-scan vuln-scan fast-scan \
            web-scan vpn-home)
+local fndir="${XDG_CONFIG_HOME:-$HOME/.config}/zsh/functions"
 for f in $fns; do
   if (( $+functions[$f] )); then
     green "  ✓ $f"
+  elif [[ -r "$fndir/$f" ]]; then
+    # Declared via autoload but not yet materialised — still correct.
+    green "  ✓ $f (autoload pending)"
   else
     red   "  ✗ $f MISSING"
   fi
@@ -58,6 +67,12 @@ for a in $als; do
 done
 
 heading "Git config"
+# ~/.gitconfig takes precedence over the Home Manager-managed
+# ~/.config/git/config, so a stray one silently disables everything below.
+if [[ -f "$HOME/.gitconfig" ]]; then
+  red "  ✗ ~/.gitconfig exists and SHADOWS the managed ~/.config/git/config"
+  red "    fix: rm ~/.gitconfig"
+fi
 local gcfg=(
   "user.name"
   "user.email"

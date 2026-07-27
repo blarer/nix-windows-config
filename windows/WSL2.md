@@ -54,6 +54,21 @@ zsh ~/nix-windows-config/windows/smoketest.zsh
 ```
 
 Checks binaries, shell functions, aliases, git config, and Helix LSPs.
+Expect zero red lines.
+
+### Gotcha: `~/.gitconfig` shadows the Home Manager git config
+
+Home Manager writes git settings to `~/.config/git/config`. Git reads
+`~/.gitconfig` **first**, and if that file exists it wins, so every setting in
+the smoketest's "Git config" section reports UNSET. This is easy to trigger by
+accident, because `git config --global ...` creates `~/.gitconfig`.
+
+```bash
+rm ~/.gitconfig      # then re-run the smoketest
+```
+
+To add machine-local git settings without breaking the managed config, put
+them in `~/.config/git/config.local` and include it, or set them per-repo.
 
 ## 6. Optional: agenix secrets in WSL
 
