@@ -129,6 +129,21 @@ if ($text -match '(?m)^\s*autoload -Uz \\\r?\n((?:\s*\S.*\\\r?\n)*\s*\S[^\r\n]*)
     Fail "could not find an 'autoload -Uz' block in modules/home.nix"
 }
 
+# Autoloaded bodies run under zsh in WSL. A CRLF checkout makes zsh treat the
+# trailing \r as part of the last token, producing baffling errors, so guard
+# the line endings explicitly rather than trusting .gitattributes to have been
+# applied on every clone.
+Write-Host "`n== Function body line endings ==" -ForegroundColor Cyan
+$crlf = @()
+Get-ChildItem $fnDir -File | ForEach-Object {
+    if ([System.IO.File]::ReadAllText($_.FullName) -match "`r") { $crlf += $_.Name }
+}
+if ($crlf) {
+    Fail "CRLF in: $($crlf -join ', ')  (run: git add --renormalize .)"
+} else {
+    Pass "all function bodies are LF"
+}
+
 Write-Host ""
 if ($failures -eq 0) {
     Write-Host "All checks passed." -ForegroundColor Green
