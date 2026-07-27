@@ -46,6 +46,11 @@ dry-run:
 smoke:
     zsh {{config_dir}}/windows/smoketest.zsh
 
+# Windows-side checks that need no Nix (run these from PowerShell on the host):
+#   powershell -NoProfile -File tools\check-nix-syntax.ps1
+#   powershell -NoProfile -File tools\check-readme.ps1
+#   powershell -NoProfile -File windows\smoketest-windows.ps1
+
 # Everything that can be checked without activating
 check: fmt-check lint deadnix check-flake
     @echo "All checks passed."

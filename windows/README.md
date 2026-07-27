@@ -9,6 +9,7 @@ built-in hotkeys), and GUI apps installed via winget/scoop.
 | File | Purpose |
 |---|---|
 | `bootstrap.ps1` | One-shot, re-runnable installer: winget + scoop + configs + WSL2 |
+| `wsl-bootstrap.sh` | One-shot, re-runnable WSL installer: Nix + daemon + clone + switch |
 | `winget.json` | `winget import`-compatible GUI app manifest |
 | `scoop-packages.txt` | Fonts, glazewm, Windows-native fallbacks |
 | `glazewm/config.yaml` | Tiling WM + hotkeys (Alt+hjkl etc), deployed to `~/.glzr/glazewm/` |
@@ -20,7 +21,7 @@ built-in hotkeys), and GUI apps installed via winget/scoop.
 
 ## Quick start
 
-From an **elevated PowerShell 7** prompt in the repo root:
+From an **elevated PowerShell** prompt in the repo root:
 
 ```powershell
 cd windows
@@ -28,7 +29,24 @@ Set-ExecutionPolicy -Scope Process Bypass -Force
 .\bootstrap.ps1
 ```
 
-Then follow `WSL2.md` to bootstrap Nix + home-manager inside Ubuntu.
+Then, inside Ubuntu:
+
+```bash
+bash /mnt/c/Users/blare/nix-windows-config/windows/wsl-bootstrap.sh
+```
+
+Both are idempotent. See `WSL2.md` for prerequisites and troubleshooting, and
+the root `README.md` for the full picture.
+
+## Verify
+
+```powershell
+powershell -NoProfile -File smoketest-windows.ps1   # exits non-zero on failure
+```
+
+Checks the GlazeWM process, config drift against the repo copy, the autostart
+shortcut, absence of the old komorebi/whkd, Alacritty and its config, the
+`Alt+Enter` target, and the winget/scoop inventory.
 
 ## Window manager
 
@@ -45,7 +63,7 @@ no second daemon to configure. Key bindings (see `glazewm/config.yaml`):
 | `Alt+V` | Toggle tiling direction |
 | `Alt+F` / `Alt+M` | Fullscreen / minimize |
 | `Alt+Shift+Space` | Toggle floating |
-| `Alt+Enter` | Launch terminal |
+| `Alt+Enter` | Launch Alacritty |
 | `Alt+Shift+Q` | Close window |
 | `Alt+Shift+R` | Reload config |
 | `Alt+Shift+E` | Exit GlazeWM |
