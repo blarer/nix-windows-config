@@ -1,4 +1,4 @@
-# Verifies that the README does not drift from reality:
+﻿# Verifies that the README does not drift from reality:
 #   - every repo path named in a table exists
 #   - every `just` recipe named actually exists in the Justfile
 #   - every GlazeWM binding listed matches windows/glazewm/config.yaml

@@ -1,27 +1,31 @@
-# Scoop packages — run bootstrap.ps1 to install
-# Buckets needed: main, extras, nerd-fonts
+# Scoop packages - run bootstrap.ps1 to install
+# Buckets needed: main, extras, nerd-fonts, sysinternals
+#
+# Package names are verified by `windows/bootstrap.ps1`; a typo here shows up
+# as "Could not find manifest for '<name>'" during a run.
 
-# ─ Buckets ─
+# - Buckets -
 # scoop bucket add extras
 # scoop bucket add nerd-fonts
+# scoop bucket add sysinternals
 
-# ─ Fonts (matches windows/alacritty/alacritty.toml) ─
+# - Fonts (matches windows/alacritty/alacritty.toml) -
 FiraCode-NF
-Noto-Color-Emoji
+twemoji-color-font   # colour emoji; the Noto colour font is not in any bucket
 
-# ─ Tiling WM ─
+# - Tiling WM -
 # GlazeWM has a built-in hotkey engine, so no separate hotkey daemon is
 # needed. Config lives at ~/.glzr/glazewm/config.yaml (see windows/glazewm/).
 glazewm
 
-# ─ Media / misc Windows-native fallbacks for macOS apps ─
-mpv                # iina replacement
-notepadplusplus    # coteditor replacement
-7zip               # keka replacement
-autoruns           # sentinel replacement (Sysinternals)
-procexp            # activity monitor replacement
+# - Media / misc Windows-native fallbacks for macOS apps -
+mpv                  # iina replacement
+notepadplusplus      # coteditor replacement
+7zip                 # keka replacement
+sysinternals/autoruns    # sentinel replacement; needs the sysinternals bucket
+sysinternals/procexp     # activity monitor replacement
 
-# ─ Optional CLI overlap (prefer WSL Nix versions) ─
+# - Optional CLI overlap (prefer the WSL Nix versions) -
 # Only install these if you need them OUTSIDE wsl:
 # ripgrep
 # fd

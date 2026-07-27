@@ -1,4 +1,4 @@
-# Structural sanity check for the Nix files in this repo.
+﻿# Structural sanity check for the Nix files in this repo.
 #
 # This is NOT a Nix parser. It catches the class of error that a
 # copy/paste or scripted edit actually introduces on the Windows side,

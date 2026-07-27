@@ -17,7 +17,11 @@
 [CmdletBinding()]
 param(
     # Skip the WSL2 install/check (useful when re-running just the Windows side).
-    [switch]$SkipWsl
+    [switch]$SkipWsl,
+
+    # Skip the winget import. That step re-verifies every GUI app and takes
+    # several minutes, so skip it when you only want to redeploy configs.
+    [switch]$SkipWinget
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,6 +35,9 @@ function Test-Command($cmd) { [bool](Get-Command $cmd -ErrorAction SilentlyConti
 
 # ─── 1. winget ────────────────────────────────────────────────────────────
 Write-Step 'Installing winget packages'
+if ($SkipWinget) {
+    Write-Skip 'skipped (-SkipWinget)'
+} else {
 if (-not (Test-Command winget)) {
     throw 'winget not found. Install "App Installer" from the Microsoft Store first.'
 }
@@ -42,6 +49,7 @@ if (-not (Test-Command winget)) {
 if ($LASTEXITCODE -ne 0) {
     Write-Skip "winget import returned $LASTEXITCODE (already-installed/unavailable entries are expected)"
 }
+}
 
 # ─── 2. Scoop ─────────────────────────────────────────────────────────────
 Write-Step 'Installing Scoop'
@@ -52,9 +60,14 @@ if (Test-Command scoop) {
 }
 
 Write-Step 'Adding Scoop buckets'
-$buckets = & scoop bucket list 6>$null | Out-String
-foreach ($b in 'extras', 'nerd-fonts') {
-    if ($buckets -match "(?m)^\s*$b\b") {
+# Check the buckets directory directly instead of calling `scoop bucket list`:
+# that shells out to `git config remote.origin.url` for every bucket, which can
+# hang for minutes on a slow or filtered network (observed: 165s and counting).
+# A bucket is just a directory under ~/scoop/buckets, so a path test is both
+# faster and immune to network conditions.
+$bucketRoot = Join-Path $env:USERPROFILE 'scoop\buckets'
+foreach ($b in 'extras', 'nerd-fonts', 'sysinternals') {
+    if (Test-Path (Join-Path $bucketRoot $b)) {
         Write-Skip "bucket $b already added"
     } else {
         & scoop bucket add $b
@@ -66,15 +79,29 @@ $scoopList = Get-Content (Join-Path $WinDir 'scoop-packages.txt') |
     Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } |
     ForEach-Object { $_.Trim().Split('#')[0].Trim() } |
     Where-Object { $_ }
+$scoopFailed = @()
 foreach ($pkg in $scoopList) {
+    # A list entry may be bucket-qualified (sysinternals/autoruns) to
+    # disambiguate; `scoop info` wants the bare name.
+    $bare = $pkg.Split('/')[-1]
     # `scoop info` prints an "Installed : <version>" line only when the app is
     # present locally. Checking first keeps re-runs from aborting the script.
-    $info = & scoop info $pkg 2>$null | Out-String
+    $info = & scoop info $bare 2>$null | Out-String
     if ($info -match 'Installed\s*:\s*\d') {
-        Write-Skip "$pkg already installed"
+        Write-Skip "$bare already installed"
     } else {
         & scoop install $pkg
+        $info = & scoop info $bare 2>$null | Out-String
+        if ($info -match 'Installed\s*:\s*\d') {
+            Write-Ok "$bare installed"
+        } else {
+            $scoopFailed += $pkg
+        }
     }
+}
+if ($scoopFailed) {
+    Write-Warning "scoop could not install: $($scoopFailed -join ', ')"
+    Write-Warning 'Check the names in windows/scoop-packages.txt against `scoop search <name>`.'
 }
 
 # ─── 3. Deploy configs ────────────────────────────────────────────────────

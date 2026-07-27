@@ -1,4 +1,4 @@
-# Windows-side smoke test for the nix-windows-config port.
+﻿# Windows-side smoke test for the nix-windows-config port.
 # Run from elevated or normal PowerShell:
 #   powershell -NoProfile -ExecutionPolicy Bypass -File .\smoketest-windows.ps1
 #
