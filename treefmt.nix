@@ -14,7 +14,7 @@
     # Nix formatting (RFC 166 compliant)
     nixfmt = {
       enable = true;
-      package = pkgs.nixfmt-rfc-style;
+      package = pkgs.nixfmt;
     };
 
     # TOML — windows/alacritty/alacritty.toml

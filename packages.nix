@@ -48,7 +48,7 @@ in
 
   user_apps = with pkgs; [
     nixd
-    nixfmt-rfc-style
+    nixfmt # Nix formatter (used by Helix auto-format and treefmt)
     ruff
     taplo
     tealdeer
