@@ -29,7 +29,7 @@ dynamic_padding = true
 decorations = "Full"
 opacity = 0.96
 blur = true
-startup_mode = "Windows"
+startup_mode = "Windowed"
 dynamic_title = true
 
 # ── Font ───────────────────────────────────────────────────────────────────
