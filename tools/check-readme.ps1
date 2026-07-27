@@ -51,6 +51,21 @@ foreach ($b in $docBinds) {
 if ($badBinds) { Fail "README bindings absent from config.yaml: $($badBinds -join ', ')" }
 else { Pass "$($docBinds.Count) documented bindings all present in config.yaml" }
 
+Write-Host "`n== README runnable commands ==" -ForegroundColor Cyan
+# Every script the README tells the reader to run must exist, otherwise the
+# quick-start instructions fail on a fresh clone.
+$cmdMissing = @()
+foreach ($m in [regex]::Matches($readme, '(?m)^powershell -NoProfile -File (\S+)')) {
+    $f = $m.Groups[1].Value -replace '/', '\'
+    if (-not (Test-Path (Join-Path $repo $f))) { $cmdMissing += $f }
+}
+foreach ($m in [regex]::Matches($readme, '(?m)^bash \S*?([\w./-]+\.sh)')) {
+    $f = ($m.Groups[1].Value -replace '/', '\') -replace '^.*nix-windows-config\\', ''
+    if (-not (Test-Path (Join-Path $repo $f))) { $cmdMissing += $f }
+}
+if ($cmdMissing) { Fail "README runs missing scripts: $($cmdMissing -join ', ')" }
+else { Pass "all documented commands point at existing scripts" }
+
 Write-Host ""
 if ($failures -eq 0) { Write-Host "README is consistent." -ForegroundColor Green; exit 0 }
 else { Write-Host "$failures inconsistency(ies)." -ForegroundColor Red; exit 1 }
