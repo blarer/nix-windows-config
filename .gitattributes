@@ -1,5 +1,23 @@
-# Auto detect text files and perform LF normalization
+# Normalize everything to LF in the repository.
 * text=auto
 
-# PowerShell scripts must keep CRLF on Windows
-*.ps1 text eol=crlf
+# ── Must stay LF in the working tree ──────────────────────────────────────
+# These are consumed by zsh/Nix inside WSL. A CRLF checkout breaks them:
+# zsh reads the trailing \r as part of a command/argument, and autoloaded
+# function bodies fail in confusing ways.
+*.nix       text eol=lf
+*.zsh       text eol=lf
+*.sh        text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.toml      text eol=lf
+Justfile    text eol=lf
+modules/shell/functions/** text eol=lf
+
+# ── Must stay CRLF ────────────────────────────────────────────────────────
+# PowerShell is happiest with CRLF, and these only ever run on Windows.
+*.ps1       text eol=crlf
+
+# ── Binary ────────────────────────────────────────────────────────────────
+*.png       binary
+*.age       binary
