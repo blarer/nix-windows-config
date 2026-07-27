@@ -1,6 +1,10 @@
 # Windows-side smoke test for the nix-windows-config port.
 # Run from elevated or normal PowerShell:
 #   powershell -NoProfile -ExecutionPolicy Bypass -File .\smoketest-windows.ps1
+#
+# Exits non-zero if any check fails, so it can gate a re-bootstrap.
+
+$script:Failures = 0
 
 function Heading($t) {
     Write-Host ""
@@ -8,39 +12,82 @@ function Heading($t) {
 }
 
 function Pass($m) { Write-Host "  + $m" -ForegroundColor Green }
-function Fail($m) { Write-Host "  - $m" -ForegroundColor Red }
+function Fail($m) { $script:Failures++; Write-Host "  - $m" -ForegroundColor Red }
+function Info($m) { Write-Host "    $m" -ForegroundColor DarkGray }
 
-Heading "Komorebi / whkd processes"
-foreach ($p in 'komorebi','whkd') {
-    $proc = Get-Process -Name $p -ErrorAction SilentlyContinue
-    if ($proc) {
-        Pass "$p running (PID $($proc.Id -join ','))"
+Heading "GlazeWM process"
+$glaze = Get-Process glazewm -ErrorAction SilentlyContinue
+if ($glaze) {
+    Pass "glazewm running (PID $($glaze.Id -join ','))"
+    Info $glaze.Path
+} else {
+    Fail "glazewm NOT running  (start it with: glazewm start)"
+}
+
+Heading "GlazeWM config"
+$repoCfg  = Join-Path $PSScriptRoot 'glazewm\config.yaml'
+$liveCfg  = Join-Path $env:USERPROFILE '.glzr\glazewm\config.yaml'
+if (Test-Path $liveCfg) {
+    Pass $liveCfg
+    if (Test-Path $repoCfg) {
+        $a = (Get-FileHash $liveCfg).Hash
+        $b = (Get-FileHash $repoCfg).Hash
+        if ($a -eq $b) {
+            Pass "live config matches repo copy"
+        } else {
+            Fail "live config DIVERGED from repo copy (windows\glazewm\config.yaml)"
+            Info "diff:  fc `"$liveCfg`" `"$repoCfg`""
+        }
     } else {
-        Fail "$p NOT running"
+        Fail "repo copy missing: $repoCfg"
+    }
+} else {
+    Fail "$liveCfg MISSING"
+}
+
+Heading "GlazeWM autostart"
+$lnk = Join-Path ([Environment]::GetFolderPath('Startup')) 'GlazeWM.lnk'
+if (Test-Path $lnk) { Pass $lnk } else { Fail "startup shortcut MISSING - glazewm will not survive a reboot" }
+
+Heading "Stale komorebi/whkd leftovers"
+foreach ($p in 'komorebi', 'whkd') {
+    if (Get-Process -Name $p -ErrorAction SilentlyContinue) {
+        Fail "$p still running - it will fight GlazeWM for window control"
+    } else {
+        Pass "$p not running"
     }
 }
 
-Heading "Scheduled task: Komorebi"
-$task = Get-ScheduledTask -TaskName 'Komorebi' -ErrorAction SilentlyContinue
-if ($task) {
-    Pass "Komorebi task: $($task.State)"
+Heading "WSL distros"
+# `wsl --list --quiet` exits 0 with empty output when WSL is present but has
+# no distributions installed, so test the parsed output rather than the code.
+$distros = ((& wsl --list --quiet 2>$null | Out-String) -replace "`0", '') -split "`r?`n" |
+           ForEach-Object { $_.Trim() } | Where-Object { $_ }
+if ($distros) {
+    foreach ($d in $distros) { Pass $d }
 } else {
-    Fail "Komorebi task missing"
+    Fail "no WSL distribution installed - the flake's #wsl config has nowhere to run"
+    Info "fix:  wsl --install -d Ubuntu   (then see windows\WSL2.md)"
 }
 
-Heading "WSL distros"
-wsl --list --verbose
+Heading "WezTerm"
+# WezTerm may be installed via winget, via the vendor MSI (Program Files), or
+# as a portable extract, so probe for the binary rather than a package ID.
+$wezExe = @(
+    (Get-Command wezterm.exe -ErrorAction SilentlyContinue).Source,
+    "$env:ProgramFiles\WezTerm\wezterm.exe",
+    "$env:LOCALAPPDATA\Programs\WezTerm\wezterm.exe"
+) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+if ($wezExe) { Pass $wezExe } else { Fail "wezterm.exe not found" }
 
-Heading "WezTerm default_prog"
 $wez = Get-Content "$env:USERPROFILE\.wezterm.lua" -ErrorAction SilentlyContinue |
        Select-String -Pattern 'config\.default_prog'
-$wez | ForEach-Object { Write-Host "  $_" }
+if ($wez) { $wez | ForEach-Object { Info $_ } } else { Info "default_prog not set" }
 
 Heading "Winget apps"
 $apps = @(
     'Anthropic.Claude',
     'Brave.Brave',
-    'wez.wezterm',
     'Microsoft.PowerShell',
     'GitHub.cli',
     'Anysphere.Cursor',
@@ -61,7 +108,7 @@ foreach ($id in $apps) {
 Heading "Scoop apps"
 # scoop info shows "Installed   : <version>" line when installed locally,
 # or no Installed line at all when not installed.
-foreach ($s in 'komorebi','whkd','FiraCode-NF','mpv','notepadplusplus','7zip') {
+foreach ($s in 'glazewm','FiraCode-NF','mpv','notepadplusplus','7zip') {
     $info = & scoop info $s 2>$null | Out-String
     if ($info -match 'Installed\s*:\s*\d') {
         Pass $s
@@ -70,16 +117,20 @@ foreach ($s in 'komorebi','whkd','FiraCode-NF','mpv','notepadplusplus','7zip') {
     }
 }
 
-Heading "Komorebi config files"
-foreach ($f in "$env:USERPROFILE\.config\komorebi\komorebi.json", "$env:USERPROFILE\.config\whkdrc") {
-    if (Test-Path $f) { Pass $f } else { Fail "$f MISSING" }
-}
-
 Heading "Hotkey sanity (manual)"
 Write-Host "  Try in any window:"
 Write-Host "    Alt+H/J/K/L         focus left/down/up/right"
 Write-Host "    Alt+Shift+H/J/K/L   move window"
-Write-Host "    Alt+1..4            switch workspace"
-Write-Host "    Alt+Enter           launch wezterm"
+Write-Host "    Alt+1..9            switch workspace"
+Write-Host "    Alt+Shift+1..9      move window to workspace"
+Write-Host "    Alt+R               resize mode        Alt+F  fullscreen"
+Write-Host "    Alt+Shift+Q         close window       Alt+Shift+R  reload config"
+
 Write-Host ""
-Write-Host "Done." -ForegroundColor Green
+if ($script:Failures -eq 0) {
+    Write-Host "Done. All checks passed." -ForegroundColor Green
+    exit 0
+} else {
+    Write-Host "Done. $script:Failures check(s) FAILED." -ForegroundColor Red
+    exit 1
+}

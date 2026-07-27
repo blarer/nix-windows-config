@@ -4,14 +4,19 @@ Goal: run the `modules/` from this flake inside WSL2 Ubuntu so the shell, CLI
 tools, editor, and dev env match macOS 1:1. Window management, fonts, and
 GUI apps stay on the Windows host (see `bootstrap.ps1`).
 
-## 0. Prereqs (from Windows PowerShell, admin)
+The flake already ships a `homeConfigurations.wsl` output and a Linux-filtered
+`packages.nix`, so there is nothing to hand-edit. Four commands total.
+
+## 1. Install the distro (Windows PowerShell, admin)
 
 ```powershell
 wsl --install -d Ubuntu
 # reboot if prompted, then finish Ubuntu first-run to create your user
 ```
 
-## 1. Install Nix (Determinate installer — matches macOS setup)
+`bootstrap.ps1` does this for you if no distro is present.
+
+## 2. Install Nix (Determinate installer — matches the macOS setup)
 
 Inside the Ubuntu shell:
 
@@ -20,89 +25,42 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 exec $SHELL
 ```
 
-## 2. Clone the config
+## 3. Clone the config
 
 ```bash
-git clone https://github.com/blarer/nix-darwin-config.git ~/nix-darwin-config
-cd ~/nix-darwin-config
+git clone https://github.com/blarer/nix-windows-config.git ~/nix-windows-config
+cd ~/nix-windows-config
 ```
 
-## 3. Add a `homeConfigurations.wsl` output
+The path matters: `Justfile` and the `dev`/`nixconf` shell functions all assume
+`~/nix-windows-config`.
 
-Edit `flake.nix`. Inside the `outputs = { self, ... }@inputs: let ... in { ... }`
-block, add a sibling to `darwinConfigurations`:
-
-```nix
-homeConfigurations."wsl" = inputs.home-manager.lib.homeManagerConfiguration {
-  pkgs = import inputs.nixpkgs {
-    system = "x86_64-linux";         # or aarch64-linux on ARM hosts
-    config.allowUnfree = true;
-    overlays = overlays;
-  };
-  extraSpecialArgs = {
-    inherit inputs git_user_name git_user_email shared_env;
-    primary_username = "YOUR_WSL_USERNAME";
-    package_sets = import ./packages.nix {
-      pkgs = import inputs.nixpkgs { system = "x86_64-linux"; config.allowUnfree = true; inherit overlays; };
-    };
-  };
-  modules = [
-    {
-      home.username      = "YOUR_WSL_USERNAME";
-      home.homeDirectory = "/home/YOUR_WSL_USERNAME";
-      home.stateVersion  = "24.11";
-    }
-    ./modules/shell.nix
-    ./modules/development.nix
-    # Skip: modules/aerospace.nix      (macOS tiling WM — replaced by komorebi on Windows host)
-    # Skip: modules/wezterm            (WezTerm runs on the Windows host, not in WSL)
-    # Skip: modules/secrets.nix        (agenix-hm optional — see §5)
-  ];
-};
-```
-
-## 4. Filter macOS-only packages from `packages.nix`
-
-Some entries only exist / only make sense on Darwin. Guard them before the
-WSL build:
-
-```nix
-# In packages.nix — at top of the user_apps list:
-user_apps = with pkgs; [
-  # Darwin-only (skip on Linux):
-  # iina            — macOS media player
-  # stats           — macOS menu bar monitor
-  # cyberduck       — provided as brew cask in nixpkgs, macOS-only
-  # wezterm         — runs on Windows host, not inside WSL
-] ++ lib.optionals pkgs.stdenv.isLinux [
-  mpv                       # iina replacement
-] ++ lib.optionals pkgs.stdenv.isDarwin [
-  iina stats cyberduck wezterm brave
-];
-```
-
-Quickest path: duplicate `packages.nix` → `packages-linux.nix` without the
-macOS-only entries, and import that one from the WSL homeConfiguration.
-
-Darwin-only items that must go: `iina`, `stats`, `cyberduck`, `wezterm`,
-`brave` (linux build may work but you already have Brave on the Windows host),
-`ifuse` (needs macFUSE; use `libimobiledevice` alone on Linux), `libimobiledevice`
-works, `wimlib` works, `ntfs3g` works, `_7zz` works.
-
-## 5. Build and activate
+## 4. Build and activate
 
 ```bash
-nix run home-manager/master -- switch --flake ~/nix-darwin-config#wsl
+nix run home-manager/master -- switch --flake ~/nix-windows-config#wsl -b hm-backup
 ```
 
-First build is slow (compiles a lot). Subsequent builds hit the cache.
+First build is slow (compiles a lot). Subsequent builds hit the cache. After
+that, `just switch` (diff + confirm) or `just switch-fast` from the repo root.
+
+If your WSL username is not `blare`, change `primary_username` in `flake.nix`
+before the first switch.
+
+## 5. Verify
+
+```bash
+zsh ~/nix-windows-config/windows/smoketest.zsh
+```
+
+Checks binaries, shell functions, aliases, git config, and Helix LSPs.
 
 ## 6. Optional: agenix secrets in WSL
 
 If you want `secrets/*.age` decrypted in WSL, install `agenix` as a
 home-manager module. Easiest: use
-[agenix-rekey](https://github.com/oddlama/agenix-rekey) or just copy
-`~/.config/sops/age/keys.txt` from your mac. The existing `modules/secrets.nix`
+[agenix-rekey](https://github.com/oddlama/agenix-rekey) or copy
+`~/.config/sops/age/keys.txt` from your mac. The Darwin `modules/secrets.nix`
 targets nix-darwin — port the paths from `/run/agenix/` to
 `${config.home.homeDirectory}/.agenix/` for HM.
 
@@ -115,11 +73,11 @@ secrets later.
 - **Launch wezterm pointing at WSL:** set
   `config.default_prog = { "wsl.exe", "~", "-d", "Ubuntu" }` in
   `windows/wezterm/wezterm.lua`.
-- **Atuin sync across host + WSL:** use the same server + key; the atuin
-  daemon in `modules/shell.nix` runs fine inside WSL.
+- **Atuin sync across host + WSL:** use the same server + key.
 - **clipboard:** WSL2 auto-bridges `clip.exe` / PowerShell `Get-Clipboard`.
-  Add `alias pbcopy=clip.exe` in a linux-only conditional if you want macOS
-  parity.
+  Add `alias pbcopy=clip.exe` in `~/.zshrc.local` if you want macOS parity.
+- **Keep the WM out of the way:** GlazeWM manages Windows-side windows only;
+  it has no effect on anything inside WSL.
 
 ## What this gets you
 
@@ -134,5 +92,5 @@ secrets later.
 | claude-code + opencode | 100% |
 | agenix secrets | optional (step 6) |
 | WezTerm | Windows host, Windows-native config |
-| Tiling WM | komorebi + whkd on Windows host |
+| Tiling WM | GlazeWM on the Windows host |
 | Fonts (FiraCode NF) | Windows host via scoop nerd-fonts bucket |

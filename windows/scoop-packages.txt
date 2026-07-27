@@ -5,13 +5,14 @@
 # scoop bucket add extras
 # scoop bucket add nerd-fonts
 
-# ─ Fonts (matches modules/wezterm/wezterm.lua) ─
+# ─ Fonts (matches windows/wezterm/wezterm.lua) ─
 FiraCode-NF
 Noto-Color-Emoji
 
-# ─ Tiling WM + hotkey daemon ─
-komorebi
-whkd
+# ─ Tiling WM ─
+# GlazeWM has a built-in hotkey engine, so no separate hotkey daemon is
+# needed. Config lives at ~/.glzr/glazewm/config.yaml (see windows/glazewm/).
+glazewm
 
 # ─ Media / misc Windows-native fallbacks for macOS apps ─
 mpv                # iina replacement
