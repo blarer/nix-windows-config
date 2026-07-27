@@ -167,6 +167,30 @@ if ($badPs1) {
     Pass "all .ps1 files are CRLF"
 }
 
+# Round-tripping a UTF-8 file through a tool that assumes Latin-1 silently
+# corrupts every multi-byte character (box drawing, arrows, CJK). This is easy
+# to do by accident when scripting edits, and the damage is not obvious in a
+# diff. U+00E2 / U+00C3 are the tell-tale lead bytes of the mangled form.
+Write-Host "`n== UTF-8 integrity ==" -ForegroundColor Cyan
+$sig = @([char]0x00E2, [char]0x00C3)
+$mojibake = @()
+Get-ChildItem $repo -Recurse -File |
+    Where-Object { $_.FullName -notmatch '\\\.git\\' -and $_.Extension -notin '.png', '.age' } |
+    ForEach-Object {
+        $u = [System.Text.Encoding]::UTF8.GetString([System.IO.File]::ReadAllBytes($_.FullName))
+        foreach ($c in $sig) {
+            if ($u.IndexOf($c) -ge 0) {
+                $mojibake += $_.FullName.Substring($repo.Length + 1)
+                break
+            }
+        }
+    }
+if ($mojibake) {
+    Fail "mojibake (UTF-8 decoded as Latin-1) in: $(($mojibake | Sort-Object -Unique) -join ', ')"
+} else {
+    Pass "no mojibake"
+}
+
 Write-Host ""
 if ($failures -eq 0) {
     Write-Host "All checks passed." -ForegroundColor Green

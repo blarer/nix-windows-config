@@ -171,9 +171,17 @@ test.
 - **`~/.gitconfig` shadows the managed git config.** Git reads it before
   `~/.config/git/config`, so if it exists, every home-manager git setting is
   inert. `git config --global` creates it. Fix: `rm ~/.gitconfig`.
+- **Home Manager cannot change your login shell.** It configures zsh and writes
+  `~/.zshenv`, but `/etc/passwd` still says `/bin/bash`, so none of it loads.
+  `wsl-bootstrap.sh` runs `chsh` (adding zsh to `/etc/shells` first, which
+  `chsh` requires).
 - **CRLF breaks WSL scripts.** zsh reads the trailing `\r` as part of the last
   token. `.gitattributes` pins `*.sh`/`*.zsh`/`*.nix`/function bodies to LF and
   `*.ps1` to CRLF; the checker verifies both.
+- **UTF-8 corrupts silently when scripting edits from PowerShell.** Reading a
+  file as Latin-1 and writing it back as UTF-8 mangles every multi-byte
+  character, and the diff looks plausible. `check-nix-syntax.ps1` scans for the
+  signature; `wsl-bootstrap.sh` is deliberately ASCII-only.
 - **The Nix daemon may not start on WSL.** The installer can finish leaving
   `cannot connect to socket`. `wsl-bootstrap.sh` registers a systemd unit with
   `Type=simple`, because `determinate-nixd` never sends an `sd_notify`

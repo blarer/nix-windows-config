@@ -9,12 +9,19 @@
 # It is idempotent: re-running skips whatever is already in place.
 #
 # What it does, in order:
-#   1. installs Determinate Nix (if absent)
-#   2. registers a systemd unit for the Nix daemon (the installer's
-#      --init none path skips this, and WSL needs systemd=true anyway)
-#   3. clones this repo to ~/nix-windows-config (if absent)
-#   4. activates the home-manager generation
-#   5. runs the smoke test
+#   1. checks systemd is enabled (WSL needs [boot] systemd=true)
+#   2. installs Determinate Nix, if absent
+#   3. registers a systemd unit for the Nix daemon (the installer's
+#      --init none path skips this)
+#   4. clones this repo to ~/nix-windows-config, if absent
+#   5. warns about a ~/.gitconfig that would shadow the managed config
+#   6. activates the home-manager generation
+#   7. sets zsh as the login shell
+#   8. runs the smoke test
+#
+# Deliberately ASCII-only: this file gets copied across the Windows/WSL
+# boundary by tools that are careless with encodings, and box-drawing
+# characters do not survive that reliably.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
@@ -26,10 +33,9 @@ step() { printf '\n==> %s\n' "$1"; }
 skip() { printf '    - %s\n' "$1"; }
 ok()   { printf '    + %s\n' "$1"; }
 
-# â”€â”€ 0. Sanity: systemd must be enabled for the daemon to be supervised â”€â”€â”€â”€â”€â”€
+# --- 1. systemd ------------------------------------------------------------
 step 'Checking systemd'
-if ! systemctl is-system-running >/dev/null 2>&1 && \
-   ! systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded'; then
+if ! systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded|starting'; then
   cat >&2 <<'EOF'
 systemd is not running in this distro. Add the following to /etc/wsl.conf:
 
@@ -42,7 +48,7 @@ EOF
 fi
 ok 'systemd is running'
 
-# â”€â”€ 1. Nix â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- 2. Nix ----------------------------------------------------------------
 step 'Installing Determinate Nix'
 if [ -x "$NIX_BIN/nix" ]; then
   skip "nix already present ($("$NIX_BIN/nix" --version))"
@@ -58,13 +64,13 @@ fi
 export PATH="$NIX_BIN:$PATH"
 export NIX_CONFIG="experimental-features = nix-command flakes"
 
-# â”€â”€ 2. Daemon unit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# The installer is run with --init none because WSL's systemd comes up after
-# the installer's own checks; we register the unit ourselves.
+# --- 3. Daemon unit --------------------------------------------------------
+# Installed with --init none because WSL brings systemd up on its own
+# schedule, so we register the unit ourselves.
 #
-# Type=simple, not Type=notify: determinate-nixd does not send an sd_notify
-# readiness signal, so Type=notify makes systemd block until it times out even
-# though the socket is created and usable within a second.
+# Type=simple, not Type=notify: determinate-nixd never sends an sd_notify
+# readiness signal, so Type=notify makes systemd block until it times out
+# even though the socket is created and usable within a second.
 step 'Registering nix-daemon systemd unit'
 if systemctl is-active --quiet nix-daemon.service; then
   skip 'nix-daemon already active'
@@ -94,7 +100,7 @@ UNIT
   ok "nix-daemon: $(systemctl is-active nix-daemon.service)"
 fi
 
-# â”€â”€ 3. Repo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- 4. Repo ---------------------------------------------------------------
 step 'Fetching the config'
 if [ -d "$REPO_DIR/.git" ]; then
   skip "$REPO_DIR already exists"
@@ -104,13 +110,13 @@ else
 fi
 cd "$REPO_DIR"
 
-# â”€â”€ 4. A stray ~/.gitconfig silently shadows the managed config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- 5. Shadowing gitconfig ------------------------------------------------
 # Git reads ~/.gitconfig before ~/.config/git/config, so if one exists the
 # entire home-manager git configuration is inert. `git config --global`
 # creates it, which makes this very easy to hit by accident.
 step 'Checking for a shadowing ~/.gitconfig'
 if [ -f "$HOME/.gitconfig" ]; then
-  echo "    ! ~/.gitconfig exists and will override the managed git config."
+  echo "    ! ~/.gitconfig exists and overrides the managed git config."
   echo "      Contents:"
   sed 's/^/        /' "$HOME/.gitconfig"
   echo "      Move it aside with: mv ~/.gitconfig ~/.gitconfig.bak"
@@ -118,11 +124,31 @@ else
   ok 'no shadowing ~/.gitconfig'
 fi
 
-# â”€â”€ 5. Activate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- 6. Activate -----------------------------------------------------------
 step 'Activating home-manager generation'
 nix run home-manager/master -- switch --flake ".#wsl" -b hm-backup
 
-# â”€â”€ 6. Verify â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# --- 7. Login shell --------------------------------------------------------
+# Home Manager configures zsh and writes ~/.zshenv, but it cannot change the
+# login shell in /etc/passwd. Without this you land in bash and none of that
+# configuration loads.
+step 'Setting zsh as the login shell'
+ZSH_BIN="$HOME/.nix-profile/bin/zsh"
+CURRENT_SHELL="$(getent passwd "$USER" | cut -d: -f7)"
+if [ "$CURRENT_SHELL" = "$ZSH_BIN" ]; then
+  skip "login shell already $ZSH_BIN"
+elif [ ! -x "$ZSH_BIN" ]; then
+  echo "    ! $ZSH_BIN not found; skipping"
+else
+  # chsh refuses any shell that is not listed in /etc/shells.
+  if ! grep -qxF "$ZSH_BIN" /etc/shells 2>/dev/null; then
+    echo "$ZSH_BIN" | sudo tee -a /etc/shells >/dev/null
+  fi
+  sudo chsh -s "$ZSH_BIN" "$USER"
+  ok "login shell set to $ZSH_BIN (applies to new sessions)"
+fi
+
+# --- 8. Verify -------------------------------------------------------------
 step 'Running smoke test'
 zsh windows/smoketest.zsh || true
 

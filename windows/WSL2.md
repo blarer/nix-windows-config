@@ -113,7 +113,20 @@ that, `just switch` (diff + confirm) or `just switch-fast` from the repo root.
 If your WSL username is not `blare`, change `primary_username` in `flake.nix`
 before the first switch.
 
-## 5. Verify
+## 5. Set zsh as the login shell
+
+Home Manager configures zsh and writes `~/.zshenv`, but it cannot edit
+`/etc/passwd`. Without this step you land in bash and none of the configuration
+loads.
+
+```bash
+echo "$HOME/.nix-profile/bin/zsh" | sudo tee -a /etc/shells   # chsh requires this
+sudo chsh -s "$HOME/.nix-profile/bin/zsh" "$USER"
+```
+
+Takes effect in a new session. Verify with `echo $SHELL`.
+
+## 6. Verify
 
 ```bash
 zsh ~/nix-windows-config/windows/smoketest.zsh
@@ -136,7 +149,7 @@ rm ~/.gitconfig      # then re-run the smoketest
 To add machine-local git settings without breaking the managed config, put
 them in `~/.config/git/config.local` and include it, or set them per-repo.
 
-## 6. Optional: agenix secrets in WSL
+## 7. Optional: agenix secrets in WSL
 
 If you want `secrets/*.age` decrypted in WSL, install `agenix` as a
 home-manager module. Easiest: use
@@ -148,7 +161,7 @@ targets nix-darwin — port the paths from `/run/agenix/` to
 Skip this for the first pass; bootstrap the shell/dev env first, layer
 secrets later.
 
-## 7. Interop tips
+## 8. Interop tips
 
 - **Run Windows binaries from WSL:** `alacritty.exe`, `code.exe`, `explorer.exe .`
 - **Point Alacritty at WSL:** uncomment the `wsl.exe` block in
@@ -171,7 +184,7 @@ secrets later.
 | nmap/masscan/nikto/arp-scan/wireguard | 100% |
 | uv + pyright + Python 3.14 free-threading | 100% |
 | claude-code + opencode | 100% |
-| agenix secrets | optional (step 6) |
+| agenix secrets | optional (step 7) |
 | Terminal | Alacritty on the Windows host |
 | Tiling WM | GlazeWM on the Windows host |
 | Fonts (FiraCode NF) | Windows host via scoop nerd-fonts bucket |
