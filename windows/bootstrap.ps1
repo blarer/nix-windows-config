@@ -155,12 +155,14 @@ Write-Host @'
 Next steps:
 
   1. Reboot if WSL2 was freshly installed.
-  2. Launch Ubuntu, create your user, then inside WSL run:
-       curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-       exec $SHELL
-       git clone https://github.com/blarer/nix-windows-config.git ~/nix-windows-config
-       nix run home-manager/master -- switch --flake ~/nix-windows-config#wsl -b hm-backup
-     (see windows/WSL2.md for details)
+  2. Launch Ubuntu and create your user, then run the WSL-side bootstrap.
+     It installs Nix, registers the daemon, clones the repo, activates the
+     home-manager generation, and smoke-tests the result:
+
+       wsl -d Ubuntu
+       bash /mnt/c/Users/blare/nix-windows-config/windows/wsl-bootstrap.sh
+
+     (or clone the repo first and run `bash windows/wsl-bootstrap.sh`)
   3. Windows-side only:
        - glazewm start   # tiling WM + hotkeys (autostarts on login)
        - alacritty       # launch terminal (alt+enter)

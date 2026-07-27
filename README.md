@@ -16,6 +16,7 @@ Windows (WSL2 + home-manager) counterpart to `nix-darwin-config`. Hybrid setup:
 | `modules/shell/functions/` | Autoloaded zsh function bodies (one file per function) |
 | `tools/check-nix-syntax.ps1` | Structural check runnable on Windows, where `nix` is absent |
 | `windows/bootstrap.ps1` | One-shot Windows installer (winget + scoop + configs + WSL2) |
+| `windows/wsl-bootstrap.sh` | One-shot WSL installer (Nix + daemon + clone + switch + smoke) |
 | `windows/winget.json` | GUI apps |
 | `windows/glazewm/config.yaml` | Tiling WM + hotkey config (deployed to `~/.glzr/glazewm/`) |
 | `windows/alacritty/alacritty.toml` | Terminal config (deployed to `%APPDATA%\alacritty\`) |
@@ -23,12 +24,21 @@ Windows (WSL2 + home-manager) counterpart to `nix-darwin-config`. Hybrid setup:
 
 ## Activate WSL side
 
-Inside Ubuntu WSL:
+Inside Ubuntu, one command does everything (Nix, daemon unit, clone, switch,
+smoke test), and is safe to re-run:
+
+```bash
+bash windows/wsl-bootstrap.sh
+```
+
+Or by hand:
 
 ```bash
 cd ~/nix-windows-config
 nix run home-manager/master -- switch --flake .#wsl -b hm-backup
 ```
+
+See `windows/WSL2.md` for prerequisites and troubleshooting.
 
 ## Activate Windows side
 

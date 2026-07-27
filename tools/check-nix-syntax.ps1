@@ -129,19 +129,42 @@ if ($text -match '(?m)^\s*autoload -Uz \\\r?\n((?:\s*\S.*\\\r?\n)*\s*\S[^\r\n]*)
     Fail "could not find an 'autoload -Uz' block in modules/home.nix"
 }
 
-# Autoloaded bodies run under zsh in WSL. A CRLF checkout makes zsh treat the
-# trailing \r as part of the last token, producing baffling errors, so guard
-# the line endings explicitly rather than trusting .gitattributes to have been
-# applied on every clone.
-Write-Host "`n== Function body line endings ==" -ForegroundColor Cyan
+# Anything executed by bash/zsh inside WSL must be LF. A CRLF checkout makes
+# the interpreter read the trailing \r as part of the last token, producing
+# baffling errors ("$'\r': command not found", or a shebang that never
+# resolves). Guard explicitly rather than trusting .gitattributes to have been
+# honoured on every clone.
+Write-Host "`n== WSL script line endings ==" -ForegroundColor Cyan
 $crlf = @()
-Get-ChildItem $fnDir -File | ForEach-Object {
-    if ([System.IO.File]::ReadAllText($_.FullName) -match "`r") { $crlf += $_.Name }
+@(
+    (Get-ChildItem $fnDir -File),
+    (Get-ChildItem (Join-Path $repo 'windows') -File -Include *.sh, *.zsh -Recurse),
+    (Get-ChildItem $repo -File -Filter '*.nix' -Recurse |
+        Where-Object { $_.FullName -notmatch '\\\.git\\' }),
+    (Get-Item (Join-Path $repo 'Justfile') -ErrorAction SilentlyContinue)
+) | ForEach-Object { $_ } | Where-Object { $_ } | ForEach-Object {
+    if ([System.IO.File]::ReadAllText($_.FullName) -match "`r") {
+        $crlf += $_.FullName.Substring($repo.Length + 1)
+    }
 }
 if ($crlf) {
     Fail "CRLF in: $($crlf -join ', ')  (run: git add --renormalize .)"
 } else {
-    Pass "all function bodies are LF"
+    Pass "all WSL-executed files are LF"
+}
+
+# PowerShell scripts are the mirror image: they only run on Windows and are
+# pinned to CRLF, so flag a stray LF-only one that .gitattributes missed.
+$ps1 = Get-ChildItem $repo -File -Filter '*.ps1' -Recurse |
+       Where-Object { $_.FullName -notmatch '\\\.git\\' }
+$badPs1 = $ps1 | Where-Object {
+    $t = [System.IO.File]::ReadAllText($_.FullName)
+    $t -match "`n" -and $t -notmatch "`r`n"
+}
+if ($badPs1) {
+    Fail "LF-only PowerShell: $(($badPs1 | ForEach-Object { $_.Name }) -join ', ')"
+} else {
+    Pass "all .ps1 files are CRLF"
 }
 
 Write-Host ""

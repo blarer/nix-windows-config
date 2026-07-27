@@ -4,8 +4,44 @@ Goal: run the `modules/` from this flake inside WSL2 Ubuntu so the shell, CLI
 tools, editor, and dev env match macOS 1:1. Window management, fonts, and
 GUI apps stay on the Windows host (see `bootstrap.ps1`).
 
+## Fast path
+
+```powershell
+wsl --install -d Ubuntu       # from Windows, admin; reboot if prompted
+```
+
+Then, inside Ubuntu, one command does everything:
+
+```bash
+bash /mnt/c/Users/blare/nix-windows-config/windows/wsl-bootstrap.sh
+```
+
+It installs Determinate Nix, registers the `nix-daemon` systemd unit, clones
+this repo to `~/nix-windows-config`, activates the home-manager generation, and
+runs the smoke test. It is idempotent, so re-running is safe.
+
+The rest of this document explains what that script does and how to do it by
+hand.
+
+## Prerequisite: systemd
+
+WSL needs systemd for the Nix daemon to be supervised. Check `/etc/wsl.conf`:
+
+```ini
+[boot]
+systemd=true
+
+[user]
+default=blare
+```
+
+After editing, run `wsl --shutdown` from Windows and reopen the distro. The
+username must match `primary_username` in `flake.nix`.
+
+## Manual steps
+
 The flake already ships a `homeConfigurations.wsl` output and a Linux-filtered
-`packages.nix`, so there is nothing to hand-edit. Four commands total.
+`packages.nix`, so there is nothing to hand-edit.
 
 ## 1. Install the distro (Windows PowerShell, admin)
 
@@ -24,6 +60,36 @@ Inside the Ubuntu shell:
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 exec $SHELL
 ```
+
+### If the daemon does not start
+
+On WSL the installer can finish without a working daemon (`error: cannot
+connect to socket at '/nix/var/nix/daemon-socket/socket'`), because systemd
+comes up on WSL's own schedule. Register the unit yourself:
+
+```bash
+sudo tee /etc/systemd/system/nix-daemon.service >/dev/null <<'UNIT'
+[Unit]
+Description=Determinate Nix Daemon
+RequiresMountsFor=/nix/store
+ConditionPathIsReadWrite=/nix/var/nix
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/determinate-nixd --nix-bin /nix/var/nix/profiles/default/bin daemon
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+sudo systemctl daemon-reload
+sudo systemctl enable --now nix-daemon.service
+```
+
+`Type=simple` is deliberate: `determinate-nixd` never sends an `sd_notify`
+readiness signal, so `Type=notify` makes systemd wait until it times out even
+though the socket works within a second.
 
 ## 3. Clone the config
 
